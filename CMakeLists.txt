@@ -13,10 +13,12 @@ set(HEADERS
         include/session_info.hpp
         include/packet_flags.hpp
         include/windows_1251.hpp
+        include/database.hpp
 )
 
 set(SOURCES
         src/worms_packet.cpp
+        src/database.cpp
 )
 
 find_package(Boost REQUIRED)
