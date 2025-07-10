@@ -14,7 +14,7 @@
 namespace worms_server
 {
     enum class packet_code : uint32_t;
-    enum class packet_flags : std::uint32_t;
+    enum class packet_flags : uint32_t;
 }
 
 namespace worms_server

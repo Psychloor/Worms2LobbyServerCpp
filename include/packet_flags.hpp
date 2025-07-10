@@ -4,12 +4,13 @@
 
 #ifndef PACKET_FLAGS_HPP
 #define PACKET_FLAGS_HPP
+
 #include <cstdint>
 #include <type_traits>
 
 namespace worms_server
 {
-	enum class packet_flags : std::uint32_t
+	enum class packet_flags : uint32_t
 	{
 		value0 = 1 << 0,
 		value1 = 1 << 1,
