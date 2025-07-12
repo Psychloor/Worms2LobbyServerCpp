@@ -59,6 +59,13 @@ void worms_server::user::start_writer()
 	co_spawn(_socket.get_executor(), [self = shared_from_this()] { return self->writer(); }, boost::asio::detached);
 }
 
+boost::asio::awaitable<size_t> worms_server::user::async_receive(const boost::asio::mutable_buffer& buffer,
+	boost::system::error_code& ec)
+{
+	return _socket.async_receive(buffer, redirect_error(boost::asio::use_awaitable, ec));
+
+}
+
 boost::asio::awaitable<void> worms_server::user::writer()
 {
 	try

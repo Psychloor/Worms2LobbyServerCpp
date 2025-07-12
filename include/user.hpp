@@ -9,6 +9,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <string>
+#include <boost/asio.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -33,7 +34,8 @@ namespace worms_server
 
 		void send_packet(const std::span<const std::byte>& packet);
 		void start_writer();
-
+		boost::asio::awaitable<size_t> async_receive(const boost::asio::mutable_buffer& buffer,
+													 boost::system::error_code& ec);
 
 	private:
 		mutable std::shared_mutex _mutex;
