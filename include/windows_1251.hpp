@@ -15,9 +15,9 @@ namespace worms_server
 
 			std::string result(utf8_input.size() * 2, '\0');
 			const int32_t length = ucnv_convert(windows1251_name(), utf8_name(),
-										  nullptr, 0,
-										  utf8_input.c_str(), static_cast<int32_t>(utf8_input.length()),
-										  &error);
+												nullptr, 0,
+												utf8_input.c_str(), static_cast<int32_t>(utf8_input.length()),
+												&error);
 			if (U_FAILURE(error)) return {};
 			result.resize(length);
 			return result;
@@ -29,9 +29,9 @@ namespace worms_server
 
 			std::string result(win1251_input.size() * 4, '\0');
 			const int32_t length = ucnv_convert(utf8_name(), windows1251_name(),
-										  nullptr, 0,
-										  win1251_input.c_str(), static_cast<int32_t>(win1251_input.length()),
-										  &error);
+												nullptr, 0,
+												win1251_input.c_str(), static_cast<int32_t>(win1251_input.length()),
+												&error);
 			if (U_FAILURE(error)) return {};
 			result.resize(length);
 			return result;

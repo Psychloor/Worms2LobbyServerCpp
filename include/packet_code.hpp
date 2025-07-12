@@ -34,6 +34,38 @@ namespace worms_server
         connect_game = 1326,
         connect_game_reply = 1327,
     };
+
+    static constexpr bool packet_code_exists(const uint32_t code)
+    {
+        switch (code)
+        {
+        case static_cast<uint32_t>(packet_code::list_rooms):
+        case static_cast<uint32_t>(packet_code::list_item):
+        case static_cast<uint32_t>(packet_code::list_end):
+        case static_cast<uint32_t>(packet_code::list_users):
+        case static_cast<uint32_t>(packet_code::list_games):
+        case static_cast<uint32_t>(packet_code::login):
+        case static_cast<uint32_t>(packet_code::login_reply):
+        case static_cast<uint32_t>(packet_code::create_room):
+        case static_cast<uint32_t>(packet_code::create_room_reply):
+        case static_cast<uint32_t>(packet_code::join):
+        case static_cast<uint32_t>(packet_code::join_reply):
+        case static_cast<uint32_t>(packet_code::leave):
+        case static_cast<uint32_t>(packet_code::leave_reply):
+        case static_cast<uint32_t>(packet_code::disconnect_user):
+        case static_cast<uint32_t>(packet_code::close):
+        case static_cast<uint32_t>(packet_code::close_reply):
+        case static_cast<uint32_t>(packet_code::create_game):
+        case static_cast<uint32_t>(packet_code::create_game_reply):
+        case static_cast<uint32_t>(packet_code::chat_room):
+        case static_cast<uint32_t>(packet_code::chat_room_reply):
+        case static_cast<uint32_t>(packet_code::connect_game):
+        case static_cast<uint32_t>(packet_code::connect_game_reply):
+            return true;
+        default:
+            return false;
+        }
+    }
 }
 
 #endif //PACKET_CODE_HPP

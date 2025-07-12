@@ -25,52 +25,11 @@ namespace worms_server
 		session_info = 1 << 9,
 	};
 
-	// Enable bitwise operations
-	constexpr packet_flags operator|(const packet_flags a, const packet_flags b) {
-		return static_cast<packet_flags>(
-			static_cast<std::underlying_type_t<packet_flags>>(a) |
-			static_cast<std::underlying_type_t<packet_flags>>(b)
-		);
-	}
-
-	constexpr packet_flags operator&(const packet_flags a, const packet_flags b) {
-		return static_cast<packet_flags>(
-			static_cast<std::underlying_type_t<packet_flags>>(a) &
-			static_cast<std::underlying_type_t<packet_flags>>(b)
-		);
-	}
-
-	constexpr packet_flags& operator|=(packet_flags& a, const packet_flags b) {
-		return a = a | b;
-	}
-
-	constexpr packet_flags& operator&=(packet_flags& a, const packet_flags b) {
-		return a = a & b;
-	}
-
-	constexpr packet_flags operator~(packet_flags a) {
-		return static_cast<packet_flags>(
-			~static_cast<std::underlying_type_t<packet_flags>>(a)
-		);
-	}
-
-	constexpr packet_flags operator^(const packet_flags a, const packet_flags b) {
-		return static_cast<packet_flags>(
-			static_cast<std::underlying_type_t<packet_flags>>(a) ^
-			static_cast<std::underlying_type_t<packet_flags>>(b)
-		);
-	}
-
-	constexpr packet_flags& operator^=(packet_flags& a, const packet_flags b) {
-		return a = a ^ b;
-	}
-
-
 	// Helper function to test flags
-	constexpr bool has_flag(const packet_flags value, const packet_flags flag) {
-		return (static_cast<std::underlying_type_t<packet_flags>>(value & flag)) != 0;
+	static constexpr bool has_flag(const uint32_t value, const packet_flags flag)
+	{
+		return value & static_cast<uint32_t>(flag) != 0;
 	}
-
 }
 
 #endif //PACKET_FLAGS_HPP
