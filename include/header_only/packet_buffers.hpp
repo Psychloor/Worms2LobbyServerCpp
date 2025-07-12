@@ -85,7 +85,7 @@ namespace net
 	{
 	public:
 		// Constructors with deduction guides
-		constexpr explicit packet_reader(std::span<const byte> data) noexcept : _data{data}
+		constexpr explicit packet_reader(const std::span<const byte> data) noexcept : _data{data}
 		{
 		}
 

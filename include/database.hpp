@@ -15,22 +15,22 @@ namespace worms_server
 	class database : std::enable_shared_from_this<database>
 	{
 	public:
-		static std::weak_ptr<database> get_instance();
+		static std::shared_ptr<database> get_instance();
 		static uint32_t get_next_id();
 
-		[[nodiscard]] std::weak_ptr<user> get_user(uint32_t id) const;
-		[[nodiscard]] std::weak_ptr<room> get_room(uint32_t id) const;
-		[[nodiscard]] std::weak_ptr<game> get_game(uint32_t id) const;
+		[[nodiscard]] std::shared_ptr<user> get_user(uint32_t id) const;
+		[[nodiscard]] std::shared_ptr<room> get_room(uint32_t id) const;
+		[[nodiscard]] std::shared_ptr<game> get_game(uint32_t id) const;
 
-		[[nodiscard]] std::vector<std::weak_ptr<user>> get_users() const;
-		[[nodiscard]] std::vector<std::weak_ptr<room>> get_rooms() const;
-		[[nodiscard]] std::vector<std::weak_ptr<game>> get_games() const;
+		[[nodiscard]] std::vector<std::shared_ptr<user>> get_users() const;
+		[[nodiscard]] std::vector<std::shared_ptr<room>> get_rooms() const;
+		[[nodiscard]] std::vector<std::shared_ptr<game>> get_games() const;
 
-		std::vector<std::weak_ptr<user>> get_users_in_room(uint32_t room_id) const;
+		std::vector<std::shared_ptr<user>> get_users_in_room(uint32_t room_id) const;
 
 		void set_user_room_id(uint32_t user_id, uint32_t room_id);
 
-		void add_user(std::shared_ptr<user>&& user);
+		void add_user(std::shared_ptr<user> user);
 		void remove_user(uint32_t id);
 
 		void add_room(std::shared_ptr<room>&& room);

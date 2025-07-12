@@ -10,28 +10,28 @@ add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
 set(ICU_ROOT "C:/CppLibraries/ICU")
 
 set(LIBHEADERS
-        include/header_only/packet_buffers.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
 )
 
 set(HEADERS
-        include/nation.hpp
-        include/packet_code.hpp
-        include/worms_packet.hpp
-        include/session_info.hpp
-        include/packet_flags.hpp
-        include/windows_1251.hpp
-        include/database.hpp
-        include/user.hpp
-        include/room.hpp
-        include/game.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/nation.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_code.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/worms_packet.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/session_info.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_flags.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/windows_1251.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/database.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/user.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/room.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/game.hpp
 )
 
 set(SOURCES
-        src/worms_packet.cpp
-        src/database.cpp
-        src/user.cpp
-        src/room.cpp
-        src/game.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/worms_packet.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/database.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/user.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/room.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/game.cpp
 )
 
 find_package(Boost REQUIRED)
@@ -40,7 +40,8 @@ find_package(ICU COMPONENTS uc i18n data REQUIRED)
 
 
 add_library(header_only INTERFACE ${LIBHEADERS})
-target_include_directories(header_only INTERFACE include/header_only)
+target_include_directories(header_only INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only)
 
 
 add_executable(${PROJECT_NAME} main.cpp

@@ -114,7 +114,8 @@ namespace worms_server
 		/// <summary>Custom skull flag</summary>
 		skull,
 		/// <summary>Custom Team17 flag</summary>
-		team17
+		team17,
+		max
 	};
 }
 #endif //NATION_HPP
