@@ -5,6 +5,7 @@
 #include "database.hpp"
 
 #include <ranges>
+#include <print>
 
 #include "game.hpp"
 #include "room.hpp"
@@ -82,6 +83,7 @@ std::vector<std::weak_ptr<worms_server::user>> worms_server::database::get_users
 {
 	std::shared_lock users_lock(_users_mutex);
 	std::shared_lock rooms_lock(_rooms_mutex);
+
 	std::vector<std::weak_ptr<user>> users;
 
 	users.reserve(_rooms.size());
@@ -94,6 +96,18 @@ std::vector<std::weak_ptr<worms_server::user>> worms_server::database::get_users
 	}
 
 	return users;
+}
+
+void worms_server::database::set_user_room_id(const uint32_t user_id, const uint32_t room_id)
+{
+	std::unique_lock lock(_users_mutex);
+
+	if (const auto it = _users.find(user_id); it != _users.end()) {
+		it->second->set_room_id(room_id);
+		return;
+	}
+
+	std::println("User {} not found", user_id);
 }
 
 void worms_server::database::add_user(std::shared_ptr<user>&& user)

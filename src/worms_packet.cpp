@@ -296,9 +296,10 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 	if (_data.has_value())
 	{
 		const auto encoded = windows_1251::encode(_data.value());
+		const auto bytes = std::as_bytes(std::span{encoded});
 
-		writer.write_le(static_cast<uint32_t>(encoded.size() + 1));
-		writer.write(std::as_bytes(std::span{encoded}));
+		writer.write_le(static_cast<uint32_t>(bytes.size_bytes() + 1));
+		writer.write_bytes(bytes);
 		writer.write(0);
 	}
 
@@ -310,12 +311,14 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 	if (_name.has_value())
 	{
 		const auto encoded = windows_1251::encode(_name.value());
-		const auto length = std::min(encoded.size(), max_name_length);
+		const auto bytes = std::as_bytes(std::span{encoded});
+		const auto length = std::min(bytes.size_bytes(), max_name_length);
 
-		std::array<uint8_t, max_name_length> buffer{0};
-		std::copy_n(encoded.begin(), length, buffer.begin());
+		std::array<net::byte, max_name_length> buffer{static_cast<net::byte>(0)};
+		std::copy_n(bytes.begin(), length, buffer.begin());
 
-		writer.write(buffer);
+
+		writer.write_bytes(buffer);
 	}
 
 	if (_session_info.has_value())

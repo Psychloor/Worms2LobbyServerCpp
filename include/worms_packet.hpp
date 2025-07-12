@@ -5,12 +5,11 @@
 #ifndef WORMS_PACKET_HPP
 #define WORMS_PACKET_HPP
 
-#include <array>
 #include <string>
 #include <optional>
 #include <cstdint>
 
-#include "packet_buffers.hpp"
+#include "header_only/packet_buffers.hpp"
 
 #include "session_info.hpp"
 
@@ -50,6 +49,66 @@ namespace worms_server
 		[[nodiscard]] size_t data_length() const;
 
 		void set_data_length(size_t length);
+
+		[[nodiscard]] packet_code get_code() const
+		{
+			return _code;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value0() const
+		{
+			return _value0;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value1() const
+		{
+			return _value1;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value2() const
+		{
+			return _value2;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value3() const
+		{
+			return _value3;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value4() const
+		{
+			return _value4;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_value10() const
+		{
+			return _value10;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_data_length() const
+		{
+			return _data_length;
+		}
+
+		[[nodiscard]] const std::optional<uint32_t>& get_error() const
+		{
+			return _error;
+		}
+
+		[[nodiscard]] const std::optional<std::string>& get_data() const
+		{
+			return _data;
+		}
+
+		[[nodiscard]] const std::optional<std::string>& get_name() const
+		{
+			return _name;
+		}
+
+		[[nodiscard]] const std::optional<session_info>& get_session_info() const
+		{
+			return _session_info;
+		}
 
 	private:
 		packet_code _code;

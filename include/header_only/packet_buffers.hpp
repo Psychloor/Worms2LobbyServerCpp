@@ -6,7 +6,6 @@
 #include <span>
 #include <optional>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <bit>
 #include <expected>
@@ -198,23 +197,6 @@ namespace net
 			return std::string_view{reinterpret_cast<const char*>(bytes->data()), bytes->size()};
 		}
 
-		template <typename T, size_t N>
-		[[nodiscard]] constexpr std::expected<std::array<T, N>, std::error_code> read_array()
-		{
-			std::array<T, N> result;
-			for (auto& item : result)
-			{
-				if (auto value = read<T>())
-				{
-					item = *value;
-				}
-				else
-				{
-					return std::unexpected(value.error());
-				}
-			}
-			return result;
-		}
 
 		// ---------------------------------------------------------------------
 		// Zero‑copy struct view via std::bit_cast – returns T by value (no memcpy)

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
+
 project(WormsServer LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -7,6 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
 
 set(ICU_ROOT "C:/CppLibraries/ICU")
+
+set(LIBHEADERS
+        include/header_only/packet_buffers.hpp
+)
 
 set(HEADERS
         include/nation.hpp
@@ -19,7 +24,6 @@ set(HEADERS
         include/user.hpp
         include/room.hpp
         include/game.hpp
-        include/packet_buffers.hpp
 )
 
 set(SOURCES
@@ -33,6 +37,11 @@ set(SOURCES
 find_package(Boost REQUIRED)
 
 find_package(ICU COMPONENTS uc i18n data REQUIRED)
+
+
+add_library(header_only INTERFACE ${LIBHEADERS})
+target_include_directories(header_only INTERFACE include/header_only)
+
 
 add_executable(${PROJECT_NAME} main.cpp
         ${HEADERS}
@@ -49,4 +58,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         ICU::uc
         ICU::i18n
         ICU::data
+        header_only
 )

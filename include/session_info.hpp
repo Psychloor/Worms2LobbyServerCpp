@@ -15,7 +15,7 @@
 
 #include <boost/endian/conversion.hpp>
 
-#include "packet_buffers.hpp"
+#include "header_only/packet_buffers.hpp"
 
 namespace worms_server
 {
@@ -37,7 +37,7 @@ namespace worms_server
 		static constexpr size_t padding_size = 35;
 		uint32_t crc1{};
 		uint32_t crc2{};
-		worms_server::nation nation = nation::team17;
+		nation nation = nation::team17;
 		uint8_t game_version{};
 		uint8_t game_release{};
 		session_type type = session_type::user;

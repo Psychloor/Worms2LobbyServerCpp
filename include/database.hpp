@@ -28,6 +28,8 @@ namespace worms_server
 
 		std::vector<std::weak_ptr<user>> get_users_in_room(uint32_t room_id) const;
 
+		void set_user_room_id(uint32_t user_id, uint32_t room_id);
+
 		void add_user(std::shared_ptr<user>&& user);
 		void remove_user(uint32_t id);
 
