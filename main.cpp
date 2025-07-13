@@ -710,16 +710,30 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 
 awaitable<void> session(ip::tcp::socket socket)
 {
+
 	uint32_t user_id = 0;
+
+	auto executor = co_await this_coro::executor;
+	steady_timer timer(executor);
+
 	try
 	{
+		bool alive = true;
+		bool logged_in = false;
+
+		//timer.expires_after(logged_in ? 10min : 3s);
+
 		const auto client_user = co_await try_to_login(std::move(socket));
+
 
 		if (client_user == nullptr)
 		{
 			std::cerr << "Login failed\n";
 			co_return;
 		}
+
+		logged_in = true;
+		alive = true;
 
 		user_id = client_user->get_id();
 
@@ -728,11 +742,12 @@ awaitable<void> session(ip::tcp::socket socket)
 		auto packet_reader = net::packet_reader(incoming.data(), incoming.size());
 		auto database = database::get_instance();
 
-		bool exit_requested = false;
-		for (;;)
+		while (alive)
 		{
 			// Wait for the client to send a packet
+			//const size_t read = co_await client_user->async_receive(buffer(incoming), error_code);
 			const size_t read = co_await client_user->async_receive(buffer(incoming), error_code);
+
 			if (error_code != boost::system::errc::success)
 			{
 				std::cerr << "Error reading packet: " << error_code.value() << "\n";
@@ -745,17 +760,19 @@ awaitable<void> session(ip::tcp::socket socket)
 				break;
 			}
 
+			timer.cancel(); // cancel the old timer to reset it
+
 			packet_reader.set_size(read);
 
 			// Keep reading packets until we can't
-			while (!exit_requested)
+			while (alive)
 			{
 				// ReSharper disable once CppDeclarationHidesLocal
 				const auto packet = worms_packet::read_from(packet_reader);
 				if (!packet.has_value())
 				{
 					std::cerr << "Error reading packet: " << packet.error() << "\n";
-					exit_requested = true;
+					alive = false;
 					break;
 				}
 
@@ -785,53 +802,53 @@ awaitable<void> session(ip::tcp::socket socket)
 				case packet_code::chat_room:
 					if (!co_await on_chat_room(client_user, database, parsed_packet))
 					{
-						exit_requested = true;
+						alive = false;
 					}
 					break;
 
 				case packet_code::list_users:
 					if (!co_await on_list_users(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::list_rooms:
 					if (!co_await on_list_rooms(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::list_games:
 					if (!co_await on_list_games(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::create_room:
 					if (!co_await on_create_room(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::join:
 					if (!co_await on_join(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::leave:
 					if (!co_await on_leave(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::create_game:
 					if (!co_await on_create_game(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::connect_game:
 					if (!co_await on_connect_game(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				case packet_code::close:
 					if (!co_await on_close(client_user, database, parsed_packet))
-						exit_requested = true;
+						alive = false;
 					break;
 
 				default:
@@ -840,7 +857,7 @@ awaitable<void> session(ip::tcp::socket socket)
 				}
 			}
 
-			if (exit_requested)
+			if (!alive)
 			{
 				break;
 			}
