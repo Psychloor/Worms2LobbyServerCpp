@@ -34,7 +34,7 @@ awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 							 const std::shared_ptr<database>& database,
 							 const std::shared_ptr<worms_packet>& packet)
 {
-	if (!packet->get_value0().value_or(0) != client_user->get_id() || !packet->get_value3().has_value() || !packet->
+	if (packet->get_value0().value_or(0) != client_user->get_id() || !packet->get_value3().has_value() || !packet->
 		get_data().has_value())
 	{
 		std::cerr << "Invalid packet data\n";
@@ -196,7 +196,7 @@ awaitable<bool> on_list_users(const std::shared_ptr<user>& client_user,
 							  const std::shared_ptr<database>& database,
 							  const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value4().value_or(0) != 0 || packet->get_value2().value_or(0) != client_user->get_id())
+	if (packet->get_value4().value_or(0) != 0 || packet->get_value2().value_or(0) != client_user->get_room_id())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -325,7 +325,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 						const std::shared_ptr<database>& database,
 						const std::shared_ptr<worms_packet>& packet)
 {
-	if (!packet->get_value2().has_value() || !packet->get_value10().value_or(0) != client_user->get_id())
+	if (!packet->get_value2().has_value() || packet->get_value10().value_or(0) != client_user->get_id())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -535,7 +535,7 @@ awaitable<bool> on_connect_game(const std::shared_ptr<user>& client_user,
 	// Require valid game ID and user to be in appropriate room.
 	const auto games = database->get_games();
 	const auto it = std::ranges::find_if(
-		games, [game_id = packet->get_value0().value(), room_id = client_user->get_id()](const auto& game) -> bool
+		games, [game_id = packet->get_value0().value(), room_id = client_user->get_room_id()](const auto& game) -> bool
 		{
 			return game->get_id() == game_id && game->get_room_id() == room_id;
 		});
@@ -653,7 +653,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 
 	const auto login_info = login_packet.value().value();
 	if (!login_info->get_value1().has_value() || !login_info->get_value4().has_value() || !login_info->get_name().
-		has_value() || login_info->get_session_info().has_value() || login_info->get_name().value().size() >= 3)
+		has_value() || !login_info->get_session_info().has_value() || login_info->get_name().value().size() >= 3)
 	{
 		std::cerr << "Not enough data in login packet\n";
 		co_return nullptr;
@@ -729,6 +729,7 @@ awaitable<void> session(ip::tcp::socket socket)
 		if (client_user == nullptr)
 		{
 			std::cerr << "Login failed\n";
+			connection_count.fetch_sub(1, std::memory_order_relaxed);
 			co_return;
 		}
 
