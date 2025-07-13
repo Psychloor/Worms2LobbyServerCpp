@@ -43,7 +43,7 @@ namespace worms_server
 		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>, std::string>
 		read_from(
 			net::packet_reader& reader);
-		void write_to(net::packet_writer& writer) const;
+		worms_packet write_to(net::packet_writer& writer) const;
 
 		[[nodiscard]] packet_code code() const;
 		[[nodiscard]] size_t data_length() const;

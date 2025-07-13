@@ -47,20 +47,13 @@ namespace worms_server
         case static_cast<uint32_t>(packet_code::login):
         case static_cast<uint32_t>(packet_code::login_reply):
         case static_cast<uint32_t>(packet_code::create_room):
-        case static_cast<uint32_t>(packet_code::create_room_reply):
         case static_cast<uint32_t>(packet_code::join):
-        case static_cast<uint32_t>(packet_code::join_reply):
         case static_cast<uint32_t>(packet_code::leave):
-        case static_cast<uint32_t>(packet_code::leave_reply):
         case static_cast<uint32_t>(packet_code::disconnect_user):
         case static_cast<uint32_t>(packet_code::close):
-        case static_cast<uint32_t>(packet_code::close_reply):
         case static_cast<uint32_t>(packet_code::create_game):
-        case static_cast<uint32_t>(packet_code::create_game_reply):
         case static_cast<uint32_t>(packet_code::chat_room):
-        case static_cast<uint32_t>(packet_code::chat_room_reply):
         case static_cast<uint32_t>(packet_code::connect_game):
-        case static_cast<uint32_t>(packet_code::connect_game_reply):
             return true;
         default:
             return false;

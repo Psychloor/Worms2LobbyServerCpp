@@ -11,6 +11,7 @@ set(ICU_ROOT "C:/CppLibraries/ICU")
 
 set(LIBHEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/resettable_timeout.hpp
 )
 
 set(HEADERS

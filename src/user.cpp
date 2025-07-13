@@ -66,6 +66,11 @@ boost::asio::awaitable<size_t> worms_server::user::async_receive(const boost::as
 
 }
 
+boost::asio::ip::address_v4 worms_server::user::get_address() const
+{
+	return _socket.remote_endpoint().address().to_v4();
+}
+
 boost::asio::awaitable<void> worms_server::user::writer()
 {
 	try

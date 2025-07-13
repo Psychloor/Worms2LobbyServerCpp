@@ -258,7 +258,7 @@ worms_server::worms_packet::read_from(
 	return packet;
 }
 
-void worms_server::worms_packet::write_to(net::packet_writer& writer) const
+worms_server::worms_packet worms_server::worms_packet::write_to(net::packet_writer& writer) const
 {
 	writer.write_le(static_cast<uint32_t>(_code));
 	writer.write_le(_flags);
@@ -326,6 +326,8 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 		const auto& info = _session_info.value();
 		write_session_info(writer, info);
 	}
+
+	return *this;
 }
 
 worms_server::packet_code worms_server::worms_packet::code() const

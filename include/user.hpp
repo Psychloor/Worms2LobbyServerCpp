@@ -33,9 +33,13 @@ namespace worms_server
 		void set_room_id(uint32_t room_id);
 
 		void send_packet(const std::span<const std::byte>& packet);
+
+		// called by the server
 		void start_writer();
 		boost::asio::awaitable<size_t> async_receive(const boost::asio::mutable_buffer& buffer,
 													 boost::system::error_code& ec);
+
+		boost::asio::ip::address_v4 get_address() const;
 
 	private:
 		mutable std::shared_mutex _mutex;
