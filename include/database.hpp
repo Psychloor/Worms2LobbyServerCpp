@@ -27,16 +27,17 @@ namespace worms_server
 		[[nodiscard]] std::vector<std::shared_ptr<game>> get_games() const;
 
 		std::vector<std::shared_ptr<user>> get_users_in_room(uint32_t room_id) const;
+		std::shared_ptr<game> get_game_by_name(std::string_view name) const;
 
 		void set_user_room_id(uint32_t user_id, uint32_t room_id);
 
 		void add_user(std::shared_ptr<user> user);
 		void remove_user(uint32_t id);
 
-		void add_room(std::shared_ptr<room>&& room);
+		void add_room(std::shared_ptr<room> room);
 		void remove_room(uint32_t id);
 
-		void add_game(std::shared_ptr<game>&& game);
+		void add_game(std::shared_ptr<game> game);
 		void remove_game(uint32_t id);
 
 	private:

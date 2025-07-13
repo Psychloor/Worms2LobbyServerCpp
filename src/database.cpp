@@ -97,6 +97,16 @@ std::vector<std::shared_ptr<worms_server::user>> worms_server::database::get_use
 	return users;
 }
 
+std::shared_ptr<worms_server::game> worms_server::database::get_game_by_name(std::string_view name) const
+{
+	std::shared_lock lock(_games_mutex);
+
+	auto view = _games | std::views::values;
+	const auto it = std::ranges::find_if(view, [name](const auto& game) { return game->get_name() == name; });
+
+	return (it != view.end()) ? *it : nullptr;
+}
+
 void worms_server::database::set_user_room_id(const uint32_t user_id, const uint32_t room_id)
 {
 	std::unique_lock lock(_users_mutex);
@@ -122,7 +132,7 @@ void worms_server::database::remove_user(const uint32_t id)
 	_users.erase(id);
 }
 
-void worms_server::database::add_room(std::shared_ptr<room>&& room)
+void worms_server::database::add_room(std::shared_ptr<room> room)
 {
 	std::lock_guard lock(_rooms_mutex);
 	const uint32_t id = room->get_id();
@@ -135,7 +145,7 @@ void worms_server::database::remove_room(const uint32_t id)
 	_rooms.erase(id);
 }
 
-void worms_server::database::add_game(std::shared_ptr<game>&& game)
+void worms_server::database::add_game(std::shared_ptr<game> game)
 {
 	std::lock_guard lock(_games_mutex);
 	const uint32_t id = game->get_id();
