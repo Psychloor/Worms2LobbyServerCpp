@@ -34,15 +34,16 @@ awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 							 const std::shared_ptr<database>& database,
 							 const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value0().value_or(0) != client_user->get_id() || !packet->get_value3().has_value() || !packet->
-		get_data().has_value())
+	if (packet->fields().value0.value_or(0) != client_user->get_id() || !packet->fields().value3.has_value() || !packet
+		->
+		fields().data.has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
 	}
 
-	const auto& target_id = packet->get_value3().value();
-	const auto& message = packet->get_data().value();
+	const auto& target_id = packet->fields().value3.value();
+	const auto& message = packet->fields().data.value();
 	const auto client_id = client_user->get_id();
 
 	if (message.starts_with(std::format("GRP:[ {} ]  ", client_user->get_name())))
@@ -53,9 +54,8 @@ awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 			net::packet_writer writer;
 
 			// Notify all users of the room.
-			worms_packet(packet_code::chat_room).with_value0(client_id).
-												 with_value3(target_id).with_data(message).
-												 write_to(writer);
+			worms_packet(packet_code::chat_room, {.value0 = client_id, .value3 = target_id, .data = message}).
+				write_to(writer);
 			const auto packet_bytes = writer.span();
 
 			for (const auto& user : database->get_users())
@@ -68,15 +68,14 @@ awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 
 			// Notify sender
 			writer.clear();
-			worms_packet(packet_code::chat_room_reply).with_error(0).write_to(writer);
+			worms_packet(packet_code::chat_room_reply, {.error = 0}).write_to(writer);
 			client_user->send_packet(writer.span());
 			co_return true;
 		}
 
 		// Notify sender
 		net::packet_writer writer;
-		const auto worms_packet = worms_server::worms_packet(packet_code::chat_room_reply).with_error(1).
-			write_to(writer);
+		worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
 		client_user->send_packet(writer.span());
 		co_return true;
 	}
@@ -87,22 +86,20 @@ awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 		if (target_user == nullptr)
 		{
 			net::packet_writer writer;
-			worms_packet(packet_code::chat_room_reply).
-				with_error(1).write_to(writer);
+			worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
 			client_user->send_packet(writer.span());
 			co_return true;
 		}
 
 		// Notify Target
 		net::packet_writer writer;
-		worms_packet(packet_code::chat_room).with_value0(client_id).
-											 with_value3(target_id).with_data(message).
-											 write_to(writer);
+		worms_packet(packet_code::chat_room, {.value0 = client_id, .value3 = target_id, .data = message}).
+			write_to(writer);
 		target_user->send_packet(writer.span());
 		writer.clear();
 
 		// Notify Sender
-		worms_packet(packet_code::chat_room_reply).with_error(1).write_to(writer);
+		worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
 		client_user->send_packet(writer.span());
 		co_return true;
 	}
@@ -133,12 +130,11 @@ awaitable<void> leave_room(const std::shared_ptr<room>& room, const uint32_t lef
 	}
 
 	net::packet_writer writer;
-	worms_packet(packet_code::leave).with_value2(room_id).with_value10(left_id).
-									 write_to(writer);
+	worms_packet(packet_code::leave, {.value2 = room_id, .value10 = left_id}).write_to(writer);
 	const auto room_leave_packet_bytes = writer.span();
 
 	writer.clear();
-	worms_packet(packet_code::close).with_value10(room_id).write_to(writer);
+	worms_packet(packet_code::close, {.value10 = room_id}).write_to(writer);
 	const auto room_close_packet_bytes = writer.span();
 	writer.clear();
 
@@ -167,7 +163,7 @@ awaitable<bool> on_list_rooms(const std::shared_ptr<user>& client_user,
 							  const std::shared_ptr<database>& database,
 							  const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value4().value_or(0) != 0)
+	if (packet->fields().value4.value_or(0) != 0)
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -177,9 +173,12 @@ awaitable<bool> on_list_rooms(const std::shared_ptr<user>& client_user,
 	net::packet_writer writer;
 	for (const auto& room : rooms)
 	{
-		worms_packet(packet_code::list_item).with_value1(room->get_id()).with_data("").
-											 with_name(room->get_name()).with_session_info(
-												 room->get_session_info()).write_to(writer);
+		worms_packet(packet_code::list_item, {
+						 .value1 = room->get_id(), .data = "", .name = std::string(room->get_name()),
+						 .session_info = room->get_session_info()
+					 }).write_to(writer);
+
+
 		const auto packet_bytes = writer.span();
 		writer.clear();
 		client_user->send_packet(packet_bytes);
@@ -196,7 +195,7 @@ awaitable<bool> on_list_users(const std::shared_ptr<user>& client_user,
 							  const std::shared_ptr<database>& database,
 							  const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value4().value_or(0) != 0 || packet->get_value2().value_or(0) != client_user->get_room_id())
+	if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.value_or(0) != client_user->get_room_id())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -212,9 +211,10 @@ awaitable<bool> on_list_users(const std::shared_ptr<user>& client_user,
 			continue;
 		}
 
-		worms_packet(packet_code::list_item).with_value1(user->get_id()).
-											 with_name(user->get_name()).with_session_info(
-												 user->get_session_info()).write_to(writer);
+		worms_packet(packet_code::list_item, {
+						 .value1 = user->get_id(), .data = "", .name = std::string(user->get_name()),
+						 .session_info = user->get_session_info()
+					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		writer.clear();
 		client_user->send_packet(packet_bytes);
@@ -231,7 +231,7 @@ awaitable<bool> on_list_games(const std::shared_ptr<user>& client_user,
 							  const std::shared_ptr<database>& database,
 							  const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value4().value_or(0) != 0 || packet->get_value2().value_or(0) != client_user->get_room_id())
+	if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.value_or(0) != client_user->get_room_id())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -247,10 +247,10 @@ awaitable<bool> on_list_games(const std::shared_ptr<user>& client_user,
 			continue;
 		}
 
-		worms_packet(packet_code::list_item).with_value1(game->get_id()).
-											 with_data(game->get_address().to_string()).
-											 with_name(game->get_name()).with_session_info(
-												 game->get_session_info()).write_to(writer);
+		worms_packet(packet_code::list_item, {
+						 .value1 = game->get_id(), .data = game->get_address().to_string(),
+						 .name = std::string(game->get_name()), .session_info = game->get_session_info()
+					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		writer.clear();
 		client_user->send_packet(packet_bytes);
@@ -267,8 +267,9 @@ awaitable<bool> on_create_room(const std::shared_ptr<user>& client_user,
 							   const std::shared_ptr<database>& database,
 							   const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value1().value_or(0) != 0 || packet->get_value4().value_or(0) != 0 || packet->get_data().
-		value_or("").empty() || packet->get_name().value_or("").empty() || !packet->get_session_info().has_value())
+	if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.value_or(0) != 0 || packet->fields().data.
+		value_or("").empty() || packet->fields().name.value_or("").empty() || !packet->fields().session_info.
+		has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -282,8 +283,7 @@ awaitable<bool> on_create_room(const std::shared_ptr<user>& client_user,
 							}))
 	{
 		net::packet_writer writer;
-		worms_packet(packet_code::create_room_reply).with_value1(0).with_error(1).
-													 write_to(writer);
+		worms_packet(packet_code::create_room_reply, {.value1 = 0, .error = 1}).write_to(writer);
 		const auto packet_bytes = writer.span();
 		client_user->send_packet(packet_bytes);
 
@@ -291,16 +291,17 @@ awaitable<bool> on_create_room(const std::shared_ptr<user>& client_user,
 	}
 
 	const auto room_id = database::get_next_id();
-	const auto room = std::make_shared<worms_server::room>(room_id, packet->get_name().value(),
-														   packet->get_session_info()->nation,
+	const auto room = std::make_shared<worms_server::room>(room_id, packet->fields().name.value(),
+														   packet->fields().session_info->nation,
 														   client_user->get_address());
 	database::get_instance()->add_room(room);
 
 
 	net::packet_writer writer;
-	worms_packet(packet_code::create_room).with_value1(room_id).with_value4(0).with_data("")
-										  .with_name(room->get_name()).with_session_info(
-											  room->get_session_info()).write_to(writer);
+	worms_packet(packet_code::create_room, {
+					 .value1 = room_id, .value4 = 0, .data = "", .name = std::string(room->get_name()),
+					 .session_info = room->get_session_info()
+				 }).write_to(writer);
 	const auto room_packet_bytes = writer.span();
 
 	// notify others
@@ -313,8 +314,7 @@ awaitable<bool> on_create_room(const std::shared_ptr<user>& client_user,
 
 	// Send the creation room reply packet
 	writer.clear();
-	worms_packet(packet_code::create_room_reply).with_value1(room_id).with_error(0).
-												 write_to(writer);
+	worms_packet(packet_code::create_room_reply, {.value1 = room_id, .error = 0}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	client_user->send_packet(packet_bytes);
 
@@ -325,24 +325,25 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 						const std::shared_ptr<database>& database,
 						const std::shared_ptr<worms_packet>& packet)
 {
-	if (!packet->get_value2().has_value() || packet->get_value10().value_or(0) != client_user->get_id())
+	if (!packet->fields().value2.has_value() || packet->fields().value10.value_or(0) != client_user->get_id())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
 	}
 
 	// Require a valid room or game ID.
-	if (std::ranges::any_of(database->get_rooms(), [join_id = packet->get_value2().value()](const auto& room) -> bool
+	if (std::ranges::any_of(database->get_rooms(), [join_id = packet->fields().value2.value()](const auto& room) -> bool
 	{
 		return room->get_id() == join_id;
 	}))
 	{
-		client_user->set_room_id(packet->get_value2().value());
+		client_user->set_room_id(packet->fields().value2.value());
 
 		// Notify other users about the join.
 		net::packet_writer writer;
-		worms_packet(packet_code::join).with_value10(client_user->get_id()).with_value2(
-			packet->get_value2().value()).write_to(writer);
+		worms_packet(packet_code::join, {
+						 .value10 = client_user->get_id(), .value2 = packet->fields().value2.value()
+					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		for (const auto& user : database->get_users())
 		{
@@ -351,7 +352,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 		}
 
 		writer.clear();
-		worms_packet(packet_code::join_reply).with_error(0).write_to(writer);
+		worms_packet(packet_code::join_reply, {.error = 0}).write_to(writer);
 		const auto packet_bytes2 = writer.span();
 		client_user->send_packet(packet_bytes2);
 
@@ -359,7 +360,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 	}
 
 	if (std::ranges::any_of(database->get_games(),
-							[join_id = packet->get_value2().value(), room_id = client_user->get_room_id()](
+							[join_id = packet->fields().value2.value(), room_id = client_user->get_room_id()](
 							const auto& game) -> bool
 							{
 								return game->get_id() == join_id && game->get_room_id() == room_id;
@@ -367,8 +368,9 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 	{
 		// Notify other users about the join.
 		net::packet_writer writer;
-		worms_packet(packet_code::join).with_value10(client_user->get_id()).with_value2(
-			client_user->get_room_id()).write_to(writer);
+		worms_packet(packet_code::join, {
+						 .value10 = client_user->get_id(), .value2 = client_user->get_room_id()
+					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		for (const auto& user : database->get_users())
 		{
@@ -377,7 +379,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 		}
 
 		writer.clear();
-		worms_packet(packet_code::join_reply).with_error(0).write_to(writer);
+		worms_packet(packet_code::join_reply, {.error = 0}).write_to(writer);
 		const auto packet_bytes2 = writer.span();
 		client_user->send_packet(packet_bytes2);
 
@@ -385,7 +387,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 	}
 
 	net::packet_writer writer;
-	worms_packet(packet_code::join_reply).with_error(1).write_to(writer);
+	worms_packet(packet_code::join_reply, {.error = 1}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	client_user->send_packet(packet_bytes);
 
@@ -396,21 +398,21 @@ awaitable<bool> on_leave(const std::shared_ptr<user>& client_user,
 						 const std::shared_ptr<database>& database,
 						 const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value10().value_or(0) != client_user->get_id() || !packet->get_value2().has_value())
+	if (packet->fields().value10.value_or(0) != client_user->get_id() || !packet->fields().value2.has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
 	}
 
 	// Require valid room ID (never sent for games, users disconnect if leaving a game).
-	if (packet->get_value2().value() == client_user->get_room_id())
+	if (packet->fields().value2.value() == client_user->get_room_id())
 	{
 		co_await leave_room(database->get_room(client_user->get_room_id()), client_user->get_id());
 		client_user->set_room_id(0);
 
 		// Reply to leaver.
 		net::packet_writer writer;
-		worms_packet(packet_code::leave_reply).with_error(0).write_to(writer);
+		worms_packet(packet_code::leave_reply, {.error = 0}).write_to(writer);
 		const auto packet_bytes = writer.span();
 		client_user->send_packet(packet_bytes);
 
@@ -419,7 +421,7 @@ awaitable<bool> on_leave(const std::shared_ptr<user>& client_user,
 
 	// Reply to leaver. (failed to find)
 	net::packet_writer writer;
-	worms_packet(packet_code::leave_reply).with_error(1).write_to(writer);
+	worms_packet(packet_code::leave_reply, {.error = 1}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	client_user->send_packet(packet_bytes);
 
@@ -430,7 +432,7 @@ awaitable<bool> on_close(const std::shared_ptr<user>& client_user,
 						 const std::shared_ptr<database>& database,
 						 const std::shared_ptr<worms_packet>& packet)
 {
-	if (!packet->get_value10().has_value())
+	if (!packet->fields().value10.has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -439,7 +441,7 @@ awaitable<bool> on_close(const std::shared_ptr<user>& client_user,
 	// Never sent for games, users disconnect if leaving a game.
 	// Reply success to the client, the server decides when to actually close rooms.
 	net::packet_writer writer;
-	worms_packet(packet_code::close_reply).with_error(0).write_to(writer);
+	worms_packet(packet_code::close_reply, {.error = 0}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	client_user->send_packet(packet_bytes);
 
@@ -450,9 +452,10 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 							   const std::shared_ptr<database>& database,
 							   const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->get_value1().value_or(1) != 0 || packet->get_value2().value_or(0) != client_user->get_id() || packet->
-		get_value4().value_or(0) != 0x800
-		|| !packet->get_data().has_value() || !packet->get_name().has_value() || !packet->get_session_info().
+	if (packet->fields().value1.value_or(1) != 0 || packet->fields().value2.value_or(0) != client_user->get_id() ||
+		packet->
+		fields().value4.value_or(0) != 0x800
+		|| !packet->fields().data.has_value() || !packet->fields().name.has_value() || !packet->fields().session_info.
 		has_value())
 	{
 		std::cerr << "Invalid packet data\n";
@@ -463,7 +466,7 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 	ip::address parsed_ip;
 	try
 	{
-		parsed_ip = ip::make_address(packet->get_data().value());
+		parsed_ip = ip::make_address(packet->fields().data.value());
 	}
 	catch (const boost::system::error_code& e)
 	{
@@ -478,18 +481,20 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 		const auto game = std::make_shared<worms_server::game>(game_id, client_user->get_name(),
 															   client_user->get_session_info().nation,
 															   client_user->get_room_id(), client_user->get_address(),
-															   packet->get_session_info().value().access);
+															   packet->fields().session_info.value().access);
 		database->add_game(game);
 
 		// Notify other users about the new game, even those in other rooms.
 		net::packet_writer writer;
-		worms_packet(packet_code::create_game).with_value1(game_id).
-											   with_value2(game->get_room_id()).
-											   with_value4(0x800).with_data(
-												   game->get_address().to_string()).
-											   with_name(game->get_name()).
-											   with_session_info(game->get_session_info()).
-											   write_to(writer);
+		worms_packet(packet_code::create_game, {
+						 .value1 = game_id,
+						 .value2 = game->get_room_id(),
+						 .value4 = 0x800,
+						 .data = game->get_address().to_string(),
+						 .name = std::string(game->get_name()),
+						 .session_info = game->get_session_info()
+					 }).write_to(writer);
+
 		const auto packet_bytes = writer.span();
 		for (const auto& user : database->get_users())
 		{
@@ -499,23 +504,22 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 
 		// Send reply to host
 		writer.clear();
-		worms_packet(packet_code::create_game_reply).with_value1(game_id).with_error(0).
-													 write_to(writer);
+		worms_packet(packet_code::create_game_reply, {.value1 = game_id, .error = 0}).write_to(writer);
 		const auto packet_bytes2 = writer.span();
 		client_user->send_packet(packet_bytes2);
 	}
 
 	net::packet_writer writer;
-	worms_packet(packet_code::create_game_reply).with_value1(0).with_error(2).
-												 write_to(writer);
+	worms_packet(packet_code::create_game_reply, {.value1 = 0, .error = 2}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	client_user->send_packet(packet_bytes);
 
 	writer.clear();
-	worms_packet(packet_code::chat_room).with_value0(client_user->get_id()).
-										 with_value3(client_user->get_room_id()).with_data(
-											 "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode")
-										 .write_to(writer);
+	worms_packet(packet_code::chat_room, {
+					 .value0 = client_user->get_id(), .value3 = client_user->get_room_id(),
+					 .data =
+					 "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
+				 }).write_to(writer);
 	const auto packet_bytes2 = writer.span();
 	client_user->send_packet(packet_bytes2);
 
@@ -526,7 +530,7 @@ awaitable<bool> on_connect_game(const std::shared_ptr<user>& client_user,
 								const std::shared_ptr<database>& database,
 								const std::shared_ptr<worms_packet>& packet)
 {
-	if (!packet->get_value0().has_value())
+	if (!packet->fields().value0.has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -535,7 +539,8 @@ awaitable<bool> on_connect_game(const std::shared_ptr<user>& client_user,
 	// Require valid game ID and user to be in appropriate room.
 	const auto games = database->get_games();
 	const auto it = std::ranges::find_if(
-		games, [game_id = packet->get_value0().value(), room_id = client_user->get_room_id()](const auto& game) -> bool
+		games, [game_id = packet->fields().value0.value(), room_id = client_user->get_room_id()](
+		const auto& game) -> bool
 		{
 			return game->get_id() == game_id && game->get_room_id() == room_id;
 		});
@@ -543,15 +548,15 @@ awaitable<bool> on_connect_game(const std::shared_ptr<user>& client_user,
 	if (it == games.end())
 	{
 		net::packet_writer writer;
-		worms_packet(packet_code::connect_game_reply).with_data("").with_error(1).write_to(writer);
+		worms_packet(packet_code::connect_game_reply, {.data = "", .error = 1}).write_to(writer);
 		const auto packet_bytes = writer.span();
 		client_user->send_packet(packet_bytes);
 	}
 	else
 	{
 		net::packet_writer writer;
-		worms_packet(packet_code::connect_game_reply).with_data((*it)->get_address().to_string()).
-													  with_error(0).write_to(writer);
+		worms_packet(packet_code::connect_game_reply, {.data = (*it)->get_address().to_string(), .error = 0}).
+			write_to(writer);
 		const auto packet_bytes = writer.span();
 		client_user->send_packet(packet_bytes);
 	}
@@ -584,13 +589,11 @@ awaitable<void> disconnect_user(const std::shared_ptr<user>& client_user)
 
 		net::packet_writer writer;
 
-		worms_packet(packet_code::leave).with_value2(game->get_id()).
-										 with_value10(client_user->get_id()).write_to(
-											 writer);
+		worms_packet(packet_code::leave, {.value2 = game->get_id(), .value10 = client_user->get_id()}).write_to(writer);
 		const auto room_leave_packet_bytes = writer.span();
 		writer.clear();
 
-		worms_packet(packet_code::close).with_value10(game->get_id()).write_to(writer);
+		worms_packet(packet_code::close, {.value10 = game->get_id()}).write_to(writer);
 		const auto room_close_packet_bytes = writer.span();
 		writer.clear();
 
@@ -612,8 +615,7 @@ awaitable<void> disconnect_user(const std::shared_ptr<user>& client_user)
 
 	// Notify other users we've disconnected
 	net::packet_writer writer;
-	worms_packet(packet_code::disconnect_user).with_value10(client_user->get_id()).
-											   write_to(writer);
+	worms_packet(packet_code::disconnect_user, {.value10 = client_user->get_id()}).write_to(writer);
 	const auto packet_bytes = writer.span();
 	for (const auto& user : database->get_users())
 	{
@@ -652,14 +654,15 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	}
 
 	const auto login_info = login_packet.value().value();
-	if (!login_info->get_value1().has_value() || !login_info->get_value4().has_value() || !login_info->get_name().
-		has_value() || !login_info->get_session_info().has_value() || login_info->get_name().value().size() >= 3)
+	if (!login_info->fields().value1.has_value() || !login_info->fields().value4.has_value() || !login_info->fields().
+		name.
+		has_value() || !login_info->fields().session_info.has_value() || login_info->fields().name.value().size() >= 3)
 	{
 		std::cerr << "Not enough data in login packet\n";
 		co_return nullptr;
 	}
 
-	const std::string username = login_info->get_name().value();
+	const std::string username = login_info->fields().name.value();
 
 	// check if a username is valid and not already taken
 	const auto database = database::get_instance();
@@ -672,8 +675,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	if (found_user != current_users.end())
 	{
 		auto writer = net::packet_writer();
-		worms_packet(packet_code::login_reply).with_value1(0).
-											   with_error(1).write_to(writer);
+		worms_packet(packet_code::login_reply, {.value1 = 0, .error = 1}).write_to(writer);
 		socket.async_write_some(buffer(writer.span()), use_awaitable);
 		co_return nullptr;
 	}
@@ -682,13 +684,13 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	// create a new user and add it to the database
 	user_id = database::get_next_id();
 	const auto client_user = std::make_shared<user>(std::move(socket), user_id, username,
-													login_info->get_session_info()->nation);
+													login_info->fields().session_info->nation);
 
 	// Notify other users we've logged in
 	auto writer = net::packet_writer();
-	worms_packet(packet_code::login).with_value1(user_id).with_value4(0).
-									 with_name(username).with_session_info(
-										 client_user->get_session_info()).write_to(writer);
+	worms_packet(packet_code::login, {
+					 .value1 = user_id, .value4 = 0, .name = username, .session_info = client_user->get_session_info()
+				 }).write_to(writer);
 
 	auto packet_bytes = writer.span();
 	for (const auto& user : database->get_users())
@@ -701,8 +703,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 
 	// Send the login reply packet
 	writer.clear();
-	worms_packet(packet_code::login_reply).with_value1(user_id).with_error(0).
-										   write_to(writer);
+	worms_packet(packet_code::login_reply, {.value1 = user_id, .error = 0}).write_to(writer);
 	client_user->send_packet(writer.span());
 
 	co_return client_user;
@@ -710,7 +711,6 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 
 awaitable<void> session(ip::tcp::socket socket)
 {
-
 	uint32_t user_id = 0;
 
 	auto executor = co_await this_coro::executor;

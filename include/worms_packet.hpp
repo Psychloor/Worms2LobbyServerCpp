@@ -9,6 +9,7 @@
 #include <optional>
 #include <cstdint>
 
+#include "packet_flags.hpp"
 #include "header_only/packet_buffers.hpp"
 
 #include "session_info.hpp"
@@ -21,102 +22,59 @@ namespace worms_server
 
 namespace worms_server
 {
+	struct packet_fields
+	{
+		std::optional<uint32_t> value0, value1, value2, value3, value4, value10, data_length;
+		std::optional<std::string> name;
+		std::optional<std::string> data;
+		std::optional<session_info> session_info;
+		std::optional<uint8_t> error;
+	};
+
 	class worms_packet : std::enable_shared_from_this<worms_packet>
 	{
 	public:
 		static constexpr size_t max_data_length = 0x200;
 		static constexpr size_t max_name_length = 20;
 
-		explicit worms_packet(packet_code code);
-
-		worms_packet with_value0(uint32_t value);
-		worms_packet with_value1(uint32_t value);
-		worms_packet with_value2(uint32_t value);
-		worms_packet with_value3(uint32_t value);
-		worms_packet with_value4(uint32_t value);
-		worms_packet with_value10(uint32_t value);
-		worms_packet with_data(std::string_view data);
-		worms_packet with_name(std::string_view name);
-		worms_packet with_error(uint32_t error);
-		worms_packet with_session_info(const session_info& session_info);
+		explicit worms_packet(packet_code code, packet_fields fields = {});
 
 		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>, std::string>
 		read_from(
 			net::packet_reader& reader);
-		worms_packet write_to(net::packet_writer& writer) const;
+		void write_to(net::packet_writer& writer) const;
 
 		[[nodiscard]] packet_code code() const;
 		[[nodiscard]] size_t data_length() const;
 
 		void set_data_length(size_t length);
 
-		[[nodiscard]] packet_code get_code() const
-		{
-			return _code;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value0() const
-		{
-			return _value0;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value1() const
-		{
-			return _value1;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value2() const
-		{
-			return _value2;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value3() const
-		{
-			return _value3;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value4() const
-		{
-			return _value4;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_value10() const
-		{
-			return _value10;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_data_length() const
-		{
-			return _data_length;
-		}
-
-		[[nodiscard]] const std::optional<uint32_t>& get_error() const
-		{
-			return _error;
-		}
-
-		[[nodiscard]] const std::optional<std::string>& get_data() const
-		{
-			return _data;
-		}
-
-		[[nodiscard]] const std::optional<std::string>& get_name() const
-		{
-			return _name;
-		}
-
-		[[nodiscard]] const std::optional<session_info>& get_session_info() const
-		{
-			return _session_info;
-		}
+		[[nodiscard]] const packet_fields& fields() const;
 
 	private:
+		constexpr uint32_t get_flags_set() const;
+
 		packet_code _code;
 		uint32_t _flags;
-		std::optional<uint32_t> _value0, _value1, _value2, _value3, _value4, _value10, _data_length, _error;
-		std::optional<std::string> _data, _name;
-		std::optional<session_info> _session_info;
+		packet_fields _fields;
 	};
+
+	constexpr uint32_t worms_packet::get_flags_set() const
+	{
+		uint32_t flags = 0;
+		if (_fields.value0) flags |= static_cast<uint32_t>(packet_flags::value0);
+		if (_fields.value1) flags |= static_cast<uint32_t>(packet_flags::value1);
+		if (_fields.value2) flags |= static_cast<uint32_t>(packet_flags::value2);
+		if (_fields.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
+		if (_fields.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
+		if (_fields.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
+		if (_fields.data_length || _fields.data) flags |= static_cast<uint32_t>(packet_flags::data_length);
+		if (_fields.data) flags |= static_cast<uint32_t>(packet_flags::data);
+		if (_fields.error) flags |= static_cast<uint32_t>(packet_flags::error);
+		if (_fields.name) flags |= static_cast<uint32_t>(packet_flags::name);
+		if (_fields.session_info) flags |= static_cast<uint32_t>(packet_flags::session_info);
+		return flags;
+	}
 }
 
 
