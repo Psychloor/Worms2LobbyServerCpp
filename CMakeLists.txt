@@ -7,8 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
 
-set(ICU_ROOT "C:/CppLibraries/ICU")
-
 set(LIBHEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/resettable_timeout.hpp
@@ -38,7 +36,13 @@ set(SOURCES
 
 find_package(Boost REQUIRED)
 
-find_package(ICU COMPONENTS uc i18n data REQUIRED)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(-O2)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-O0)
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    add_compile_options(-O2 -g)
+endif()
 
 
 add_library(header_only INTERFACE ${LIBHEADERS})
@@ -54,12 +58,8 @@ add_executable(${PROJECT_NAME} main.cpp
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
-        ${ICU_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        ICU::uc
-        ICU::i18n
-        ICU::data
         header_only
 )
