@@ -675,11 +675,6 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 		has_value() || !login_info->fields().session_info.has_value())
 	{
 		std::cerr << "Not enough data in login packet\n";
-
-		std::cerr << "value1: " << login_info->fields().value1.value_or(8) << "\n";
-		std::cerr << "value4: " << login_info->fields().value4.value_or(8) << "\n";
-		std::cerr << "name: " << login_info->fields().name.value_or("") << "\n";
-
 		co_return nullptr;
 	}
 
@@ -778,6 +773,8 @@ awaitable<void> session(ip::tcp::socket socket)
 			}
 
 			auto packet_reader = net::packet_reader(incoming);
+
+			// Result<Optional<Packet>, Error>. made like Tokio's Framed
 			const auto packet = worms_packet::read_from(packet_reader);
 			if (!packet.has_value())
 			{
