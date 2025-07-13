@@ -50,20 +50,19 @@ void worms_server::user::set_room_id(const uint32_t room_id)
 
 void worms_server::user::send_packet(const std::span<const std::byte>& packet)
 {
-	_packets.push_back(packet);
+	_packets.enqueue({packet.begin(), packet.end()});
 	_timer.cancel_one();
 }
 
 void worms_server::user::start_writer()
 {
-	co_spawn(_socket.get_executor(), [self = shared_from_this()] { return self->writer(); }, boost::asio::detached);
+	co_spawn(_socket.get_executor(), [this] { return writer(); }, boost::asio::detached);
 }
 
 boost::asio::awaitable<size_t> worms_server::user::async_receive(const boost::asio::mutable_buffer& buffer,
-	boost::system::error_code& ec)
+																 boost::system::error_code& ec)
 {
 	return _socket.async_receive(buffer, redirect_error(boost::asio::use_awaitable, ec));
-
 }
 
 boost::asio::ip::address_v4 worms_server::user::get_address() const
@@ -75,19 +74,24 @@ boost::asio::awaitable<void> worms_server::user::writer()
 {
 	try
 	{
+		std::vector<std::byte> current_packet;
+
 		while (_socket.is_open())
 		{
-			if (_packets.empty())
+			if (_packets.try_dequeue(current_packet))
 			{
-				boost::system::error_code ec;
-				co_await _timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+				// Send packets as long as we have them
+				do
+				{
+					co_await boost::asio::async_write(_socket,
+						boost::asio::buffer(current_packet),
+						boost::asio::use_awaitable);
+				} while (_packets.try_dequeue(current_packet));
 			}
-			else
-			{
-				co_await boost::asio::async_write(_socket,
-												  boost::asio::buffer(_packets.front()), boost::asio::use_awaitable);
-				_packets.pop_front();
-			}
+
+			// Only wait if we had no packets
+			boost::system::error_code ec;
+			co_await _timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 		}
 	}
 	catch (std::exception&)

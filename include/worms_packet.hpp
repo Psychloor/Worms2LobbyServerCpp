@@ -28,7 +28,7 @@ namespace worms_server
 		std::optional<std::string> name;
 		std::optional<std::string> data;
 		std::optional<session_info> session_info;
-		std::optional<uint8_t> error;
+		std::optional<uint32_t> error;
 	};
 
 	class worms_packet : std::enable_shared_from_this<worms_packet>
@@ -50,6 +50,13 @@ namespace worms_server
 		void set_data_length(size_t length);
 
 		[[nodiscard]] const packet_fields& fields() const;
+
+		/*template <packet_code Code, typename... Args>
+		[[nodiscard]]
+		static worms_packet make_packet(Args&&... args)
+		{
+			return worms_packet(Code, packet_fields{std::forward<Args>(args)...});
+		}*/
 
 	private:
 		constexpr uint32_t get_flags_set() const;

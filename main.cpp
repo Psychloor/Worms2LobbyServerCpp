@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <coroutine>
+
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -174,7 +176,8 @@ awaitable<bool> on_list_rooms(const std::shared_ptr<user>& client_user,
 	for (const auto& room : rooms)
 	{
 		worms_packet(packet_code::list_item, {
-						 .value1 = room->get_id(), .data = "", .name = std::string(room->get_name()),
+						 .value1 = room->get_id(), .name = std::string(room->get_name()),
+						 .data = "",
 						 .session_info = room->get_session_info()
 					 }).write_to(writer);
 
@@ -212,7 +215,7 @@ awaitable<bool> on_list_users(const std::shared_ptr<user>& client_user,
 		}
 
 		worms_packet(packet_code::list_item, {
-						 .value1 = user->get_id(), .data = "", .name = std::string(user->get_name()),
+						 .value1 = user->get_id(), .name = std::string(user->get_name()), .data = "",
 						 .session_info = user->get_session_info()
 					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
@@ -248,8 +251,9 @@ awaitable<bool> on_list_games(const std::shared_ptr<user>& client_user,
 		}
 
 		worms_packet(packet_code::list_item, {
-						 .value1 = game->get_id(), .data = game->get_address().to_string(),
-						 .name = std::string(game->get_name()), .session_info = game->get_session_info()
+						 .value1 = game->get_id(),
+						 .name = std::string(game->get_name()), .data = game->get_address().to_string(),
+						 .session_info = game->get_session_info()
 					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		writer.clear();
@@ -299,7 +303,7 @@ awaitable<bool> on_create_room(const std::shared_ptr<user>& client_user,
 
 	net::packet_writer writer;
 	worms_packet(packet_code::create_room, {
-					 .value1 = room_id, .value4 = 0, .data = "", .name = std::string(room->get_name()),
+					 .value1 = room_id, .value4 = 0, .name = std::string(room->get_name()), .data = "",
 					 .session_info = room->get_session_info()
 				 }).write_to(writer);
 	const auto room_packet_bytes = writer.span();
@@ -342,7 +346,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 		// Notify other users about the join.
 		net::packet_writer writer;
 		worms_packet(packet_code::join, {
-						 .value10 = client_user->get_id(), .value2 = packet->fields().value2.value()
+						 .value2 = packet->fields().value2.value(), .value10 = client_user->get_id()
 					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		for (const auto& user : database->get_users())
@@ -369,7 +373,7 @@ awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 		// Notify other users about the join.
 		net::packet_writer writer;
 		worms_packet(packet_code::join, {
-						 .value10 = client_user->get_id(), .value2 = client_user->get_room_id()
+						 .value2 = client_user->get_room_id(), .value10 = client_user->get_id()
 					 }).write_to(writer);
 		const auto packet_bytes = writer.span();
 		for (const auto& user : database->get_users())
@@ -490,8 +494,8 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 						 .value1 = game_id,
 						 .value2 = game->get_room_id(),
 						 .value4 = 0x800,
-						 .data = game->get_address().to_string(),
 						 .name = std::string(game->get_name()),
+						 .data = game->get_address().to_string(),
 						 .session_info = game->get_session_info()
 					 }).write_to(writer);
 
@@ -629,7 +633,8 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 {
 	// Wait for the client to send a login packet
 	uint32_t user_id = 0;
-	std::vector<std::byte> incoming(100);
+	std::vector<std::byte> incoming(1024);
+	incoming.reserve(1024);
 	boost::system::error_code error_code;
 
 	co_await socket.async_receive(buffer(incoming), redirect_error(use_awaitable, error_code));
@@ -639,7 +644,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 		co_return nullptr;
 	}
 
-	auto packet_reader = net::packet_reader(incoming.data(), incoming.size());
+	auto packet_reader = net::packet_reader(incoming);
 	const auto login_packet = worms_packet::read_from(packet_reader);
 	if (!login_packet.has_value())
 	{
@@ -653,12 +658,17 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 		co_return nullptr;
 	}
 
-	const auto login_info = login_packet.value().value();
+	auto login_info = *login_packet.value();
 	if (!login_info->fields().value1.has_value() || !login_info->fields().value4.has_value() || !login_info->fields().
 		name.
-		has_value() || !login_info->fields().session_info.has_value() || login_info->fields().name.value().size() >= 3)
+		has_value() || !login_info->fields().session_info.has_value())
 	{
 		std::cerr << "Not enough data in login packet\n";
+
+		std::cerr << "value1: " << login_info->fields().value1.value_or(8) << "\n";
+		std::cerr << "value4: " << login_info->fields().value4.value_or(8) << "\n";
+		std::cerr << "name: " << login_info->fields().name.value_or("") << "\n";
+
 		co_return nullptr;
 	}
 
@@ -676,7 +686,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	{
 		auto writer = net::packet_writer();
 		worms_packet(packet_code::login_reply, {.value1 = 0, .error = 1}).write_to(writer);
-		socket.async_write_some(buffer(writer.span()), use_awaitable);
+		co_await socket.async_write_some(buffer(writer.span()), use_awaitable);
 		co_return nullptr;
 	}
 	current_users.clear();
@@ -685,6 +695,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	user_id = database::get_next_id();
 	const auto client_user = std::make_shared<user>(std::move(socket), user_id, username,
 													login_info->fields().session_info->nation);
+	client_user->start_writer();
 
 	// Notify other users we've logged in
 	auto writer = net::packet_writer();
@@ -699,7 +710,6 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 	}
 
 	database->add_user(client_user);
-	client_user->start_writer();
 
 	// Send the login reply packet
 	writer.clear();
@@ -713,15 +723,10 @@ awaitable<void> session(ip::tcp::socket socket)
 {
 	uint32_t user_id = 0;
 
-	auto executor = co_await this_coro::executor;
-	steady_timer timer(executor);
-
 	try
 	{
 		bool alive = true;
 		bool logged_in = false;
-
-		//timer.expires_after(logged_in ? 10min : 3s);
 
 		const auto client_user = co_await try_to_login(std::move(socket));
 
@@ -736,11 +741,12 @@ awaitable<void> session(ip::tcp::socket socket)
 		logged_in = true;
 		alive = true;
 
+		std::cout << "Logged in as " << client_user->get_name() << "\n";
+
 		user_id = client_user->get_id();
 
 		boost::system::error_code error_code;
 		std::vector<std::byte> incoming(1024);
-		auto packet_reader = net::packet_reader(incoming.data(), incoming.size());
 		auto database = database::get_instance();
 
 		while (alive)
@@ -761,14 +767,11 @@ awaitable<void> session(ip::tcp::socket socket)
 				break;
 			}
 
-			timer.cancel(); // cancel the old timer to reset it
-
-			packet_reader.set_size(read);
-
 			// Keep reading packets until we can't
 			while (alive)
 			{
 				// ReSharper disable once CppDeclarationHidesLocal
+				auto packet_reader = net::packet_reader(incoming);
 				const auto packet = worms_packet::read_from(packet_reader);
 				if (!packet.has_value())
 				{
@@ -789,7 +792,6 @@ awaitable<void> session(ip::tcp::socket socket)
 				{
 					std::memmove(incoming.data(), incoming.data() + consumed, incoming.size() - consumed);
 					incoming.resize(incoming.size() - consumed);
-					packet_reader.reset();
 				}
 
 				const auto& parsed_packet = optional_packet.value();
@@ -925,9 +927,9 @@ int main(const int argc, char** argv)
 {
 	uint16_t port = 17000;
 	size_t max_connections = 1000;
+	size_t max_threads = std::thread::hardware_concurrency();
 
 	auto args = std::vector<std::string>(argv, argv + argc);
-
 	for (const auto args_slide = std::ranges::slide_view(args, 2); const auto& arg : args_slide)
 	{
 		if (arg[0] == "-p" || arg[0] == "--port")
@@ -949,6 +951,22 @@ int main(const int argc, char** argv)
 				max_connections = 1000;
 			}
 		}
+
+		if (arg[0] == "-t" || arg[0] == "--threads")
+		{
+			max_threads = std::stoi(arg[1]);
+			if (max_threads < 1)
+			{
+				std::cerr << "Invalid thread count, defaulting to " << std::thread::hardware_concurrency() << "\n";
+				max_threads = std::thread::hardware_concurrency();
+			}
+			else if (max_threads > std::thread::hardware_concurrency())
+			{
+				std::cerr << "Thread count cannot be higher than the number of cores, defaulting to " << std::thread::hardware_concurrency()
+						  << "\n";
+				max_threads = std::thread::hardware_concurrency();
+			}
+		}
 	}
 
 	try
@@ -965,6 +983,21 @@ int main(const int argc, char** argv)
 
 		std::cout << "Press Ctrl+C to exit\n";
 
+		// Multithreaded run
+		if (max_threads > 1)
+		{
+			std::vector<std::jthread> threads;
+			for (size_t i = 0; i < max_threads; ++i)
+			{
+				threads.emplace_back([&io_context]
+				{
+					io_context.run();
+				});
+			}
+
+		}
+
+		// Run on the main thread too
 		io_context.run();
 	}
 	catch (const std::exception& e)

@@ -9,22 +9,27 @@
 #include <memory>
 #include <shared_mutex>
 #include <string>
+
 #include <boost/asio.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
+#include "database.hpp"
 #include "session_info.hpp"
 #include "worms_packet.hpp"
+
+#include "concurrentqueue.hpp"
 
 namespace worms_server
 {
 	using tcp = boost::asio::ip::tcp;
 
-	class user final : std::enable_shared_from_this<user>
+	class user final
 	{
 	public:
 		explicit user(tcp::socket socket, uint32_t id, std::string_view name, nation nation);
+		~user() {	database::recycle_id(_id);	};
 
 		[[nodiscard]] uint32_t get_id() const;
 		[[nodiscard]] std::string_view get_name() const;
@@ -53,7 +58,7 @@ namespace worms_server
 		uint32_t _room_id;
 
 		boost::asio::steady_timer _timer;
-		std::deque<std::span<const std::byte>> _packets;
+		moodycamel::ConcurrentQueue<std::vector<std::byte>> _packets;
 	};
 }
 

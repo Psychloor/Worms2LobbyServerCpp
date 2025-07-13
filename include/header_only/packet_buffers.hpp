@@ -86,7 +86,7 @@ namespace net
 	{
 	public:
 		// Constructors with deduction guides
-		constexpr explicit  packet_reader(const byte* data, const size_t size) noexcept : _base(data), _size(size)
+		constexpr explicit  packet_reader(const std::span<const std::byte> data) noexcept : _base(data), _consumed(0)
 		{
 		}
 
@@ -94,13 +94,13 @@ namespace net
 		template <typename T> requires std::is_trivially_copyable_v<T>
 		[[nodiscard]] constexpr std::expected<T, std::error_code> read()
 		{
-			if (_consumed + sizeof(T) > _size)
+			if (_consumed + sizeof(T) > _base.size())
 			{
 				return std::unexpected(std::make_error_code(std::errc::message_size));
 			}
 
 			T value;
-			std::memcpy(&value, _base + _consumed, sizeof(T));
+			std::memcpy(&value, _base.data() + _consumed, sizeof(T));
 			_consumed += sizeof(T);
 			return value;
 		}
@@ -110,12 +110,12 @@ namespace net
 		// ReSharper disable once CppDFAUnreachableFunctionCall
 		read_bytes(const size_t len)
 		{
-			if (_consumed + len > _size)
+			if (_consumed + len > _base.size())
 			{
 				return std::unexpected(std::make_error_code(std::errc::message_size));
 			}
 
-			auto view = std::span{_base + _consumed, len};
+			auto view = _base.subspan(_consumed, len);
 			_consumed += len;
 			return view;
 		}
@@ -158,9 +158,9 @@ namespace net
 
 		[[nodiscard]] constexpr std::optional<std::string> read_c_string()
 		{
-			const byte* start = _base + _consumed;
-			const byte* end = _base + _size;
-			const byte* null_term = std::find(start, end, byte{0});
+			const auto start = _base.begin() + _consumed;
+			const auto end = _base.end();
+			const auto null_term = std::find(start, end, byte{0});
 
 			if (null_term == end) return std::nullopt;
 
@@ -168,7 +168,7 @@ namespace net
 			_consumed += str_len + 1; // +1 for null terminator
 
 			// reinterpret_cast ok here: std::byte is layout-compatible with char
-			return std::string{reinterpret_cast<const char*>(start), str_len};
+			return std::string{reinterpret_cast<const char*>(&start), str_len};
 		}
 
 		// Not null-terminated
@@ -205,7 +205,7 @@ namespace net
 			if (!can_read(sizeof(T)))
 				return std::unexpected(std::make_error_code(std::errc::message_size));
 			// bit_cast performs compile‑time memcpy, no alignment requirement
-			T v = std::bit_cast<T>(*reinterpret_cast<const std::array<byte, sizeof(T)>*>(_base + _consumed));
+			T v = std::bit_cast<T>(*reinterpret_cast<const std::array<byte, sizeof(T)>*>(_base.begin() + _consumed));
 			_consumed += sizeof(T);
 			return v;
 		}
@@ -213,12 +213,12 @@ namespace net
 		// Utility methods
 		[[nodiscard]] constexpr bool can_read(const size_t bytes) const noexcept
 		{
-			return _consumed + bytes <= _size;
+			return _consumed + bytes <= _base.size_bytes();
 		}
 
 		[[nodiscard]] constexpr std::span<const byte> remaining() const noexcept
 		{
-			return std::span<const byte>{_base + _consumed, _size - _consumed};
+			return std::span<const byte>{_base.begin() + _consumed, _base.size_bytes() - _consumed};
 		}
 
 		[[nodiscard]] constexpr size_t bytes_read() const noexcept
@@ -228,7 +228,7 @@ namespace net
 
 		[[nodiscard]] constexpr size_t bytes_remaining() const noexcept
 		{
-			return _size - _consumed;
+			return _base.size_bytes() - _consumed;
 		}
 
 		// Reset the reader to the beginning of the buffer
@@ -237,14 +237,8 @@ namespace net
 			_consumed = 0;
 		}
 
-		constexpr void set_size(const size_t size) noexcept
-		{
-			_size = size;
-		}
-
 	private:
-		const byte* _base = nullptr;
-		std::size_t _size = 0;
+		std::span<const byte> _base;
 		std::size_t _consumed = 0;
 	};
 } // namespace net

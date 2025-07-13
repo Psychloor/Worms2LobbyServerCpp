@@ -8,14 +8,16 @@
 #include <string>
 #include <boost/asio/ip/address_v4.hpp>
 
+#include "database.hpp"
 #include "session_info.hpp"
 
 namespace worms_server
 {
-	class room final : std::enable_shared_from_this<room>
+	class room final
 	{
 	public:
 		explicit room(uint32_t id, std::string_view name, nation nation, boost::asio::ip::address_v4 address);
+		~room()	{	database::recycle_id(_id);	};
 
 		[[nodiscard]] uint32_t get_id() const;
 		[[nodiscard]] std::string_view get_name() const;

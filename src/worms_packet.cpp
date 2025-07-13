@@ -111,18 +111,41 @@ worms_server::worms_packet::read_from(
 			return std::nullopt;
 		}
 
-		// If bit 6 is set in Flags (and implicitly bit 5 and non-zero Data Length),
-		// stores a 0-terminated Windows 1251-encoded text (like an IP string or full chat message).
-		// The terminator is included in Data Length.
-		const auto bytes = reader.read_bytes(packet->data_length()).value();
-		const auto encoded = std::string(
-			reinterpret_cast<const char*>(bytes.data()),
-			bytes.size() - 1 // Subtract 1 to exclude null terminator
-		);
+		// Add size validation
+		if (packet->data_length() == 0)
+		{
+			packet->_fields.data = "";
+		} else
+		{
+			const auto bytes = reader.read_bytes(packet->data_length()).value();
+			// Ensure we have at least one byte for null terminator
+			if (bytes.empty() || bytes.back() != std::byte{0})
+			{
+				return std::unexpected("Invalid data: missing null terminator");
+			}
 
-		const std::string decoded = windows_1251::decode(encoded);
+			const auto encoded = std::string(
+				reinterpret_cast<const char*>(bytes.data()),
+				bytes.size()// - 1 // Subtract 1 to exclude null terminator
+			);
 
-		packet->_fields.data=(decoded);
+			// Add size check before decoding
+			if (encoded.length() > max_data_length)
+			{
+				return std::unexpected("String too long: encoded data exceeds maximum length");
+			}
+
+			const std::string decoded = windows_1251::decode(encoded);
+
+			// Add size check after decoding
+			if (decoded.length() > max_data_length)
+			{
+				return std::unexpected("String too long: decoded data exceeds maximum length");
+			}
+
+			packet->_fields.data = decoded;
+		}
+
 	}
 
 	if (has_flag(flags, packet_flags::error))
@@ -144,13 +167,30 @@ worms_server::worms_packet::read_from(
 
 		// Find the first null terminator or use the whole buffer
 		const auto terminator_pos = std::ranges::find(name_encoded_bytes, static_cast<std::byte>(0));
+		if (terminator_pos == name_encoded_bytes.end())
+		{
+			return std::unexpected("Invalid name: missing null terminator");
+		}
+
 		const std::string name_encoded(
 			reinterpret_cast<char const*>(name_encoded_bytes.data()),
 			std::distance(name_encoded_bytes.begin(), terminator_pos)
 		);
 
+		if (name_encoded.length() > max_name_length)
+		{
+			return std::unexpected("Name too long: encoded name exceeds maximum length");
+		}
+
 		const auto name_decoded = windows_1251::decode(name_encoded);
-		packet->_fields.name=(name_decoded);
+
+		if (name_decoded.length() > max_name_length)
+		{
+			return std::unexpected("Name too long: decoded name exceeds maximum length");
+		}
+
+		packet->_fields.name = name_decoded;
+
 	}
 
 	if (has_flag(flags, packet_flags::session_info))
@@ -168,10 +208,10 @@ worms_server::worms_packet::read_from(
 
 		session_info info = result.value().value();
 		info.game_release = 49;
-		packet->_fields.session_info=(std::forward<session_info>(info));
+		packet->_fields.session_info= info;
 	}
 
-	return packet;
+	return std::make_optional(std::move(packet));
 }
 
 void worms_server::worms_packet::write_to(net::packet_writer& writer) const

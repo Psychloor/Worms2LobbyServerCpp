@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <boost/asio/ip/address_v4.hpp>
+#include <concurrentqueue.hpp>
 
 namespace worms_server
 {
@@ -17,6 +18,7 @@ namespace worms_server
 	public:
 		static std::shared_ptr<database> get_instance();
 		static uint32_t get_next_id();
+		static void recycle_id(uint32_t id);
 
 		[[nodiscard]] std::shared_ptr<user> get_user(uint32_t id) const;
 		[[nodiscard]] std::shared_ptr<room> get_room(uint32_t id) const;
@@ -44,7 +46,9 @@ namespace worms_server
 		mutable std::shared_mutex _users_mutex;
 		mutable std::shared_mutex _rooms_mutex;
 		mutable std::shared_mutex _games_mutex;
+
 		std::atomic_uint32_t _next_id = 0x1000;
+		moodycamel::ConcurrentQueue<uint32_t> _recycled_ids;
 
 		std::unordered_map<uint32_t, std::shared_ptr<user>> _users;
 		std::unordered_map<uint32_t, std::shared_ptr<room>> _rooms;
