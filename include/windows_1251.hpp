@@ -15,11 +15,11 @@ namespace worms_server {
 
             for (size_t i = 0; i < utf8_input.length();) {
                 uint32_t codepoint;
-                size_t len = utf8_to_codepoint(utf8_input, i, codepoint);
+                const size_t len = utf8_to_codepoint(utf8_input, i, codepoint);
                 i += len;
 
                 // Find the Windows-1251 equivalent
-                uint8_t win1251_char = unicode_to_windows1251(codepoint);
+                const uint8_t win1251_char = unicode_to_windows1251(codepoint);
                 result.push_back(static_cast<char>(win1251_char));
             }
 
@@ -30,8 +30,8 @@ namespace worms_server {
             std::string result;
             result.reserve(win1251_input.length() * 2); // UTF-8 might need more space
 
-            for (unsigned char c : win1251_input) {
-                uint32_t unicode = windows1251_to_unicode(c);
+            for (const unsigned char c : win1251_input) {
+                const uint32_t unicode = windows1251_to_unicode(c);
                 append_utf8(result, unicode);
             }
 
@@ -39,7 +39,7 @@ namespace worms_server {
         }
 
     private:
-        static size_t utf8_to_codepoint(const std::string& utf8_str, size_t pos, uint32_t& codepoint) {
+        static size_t utf8_to_codepoint(const std::string& utf8_str, const size_t pos, uint32_t& codepoint) {
             unsigned char first = utf8_str[pos];
 
             if ((first & 0x80) == 0) {
@@ -59,7 +59,7 @@ namespace worms_server {
             return 0;
         }
 
-        static void append_utf8(std::string& str, uint32_t codepoint) {
+        static void append_utf8(std::string& str, const uint32_t codepoint) {
             if (codepoint <= 0x7F) {
                 str.push_back(static_cast<char>(codepoint));
             }
@@ -74,8 +74,8 @@ namespace worms_server {
             }
         }
 
-        static uint32_t windows1251_to_unicode(unsigned char win1251_char) {
-            static const std::array<uint32_t, 128> conversion_table = {
+         static uint32_t windows1251_to_unicode(const unsigned char win1251_char) {
+              constexpr static const std::array<uint32_t, 128> conversion_table = {
                 0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021,
                 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
                 0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
@@ -100,7 +100,7 @@ namespace worms_server {
             return conversion_table[win1251_char - 0x80];
         }
 
-        static uint8_t unicode_to_windows1251(uint32_t unicode) {
+        constexpr static uint8_t unicode_to_windows1251(const uint32_t unicode) {
             if (unicode < 0x80) {
                 return static_cast<uint8_t>(unicode);
             }
