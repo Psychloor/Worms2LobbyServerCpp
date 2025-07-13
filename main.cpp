@@ -32,6 +32,16 @@ using namespace worms_server;
 
 std::atomic<size_t> connection_count{0};
 
+struct count_helper
+{
+	count_helper() = default;
+	~count_helper()
+	{
+		connection_count.fetch_sub(1);
+		std::cout << "Connection count: " << connection_count.load(std::memory_order::relaxed) << "\n";
+	}
+};
+
 awaitable<bool> on_chat_room(const std::shared_ptr<user>& client_user,
 							 const std::shared_ptr<database>& database,
 							 const std::shared_ptr<worms_packet>& packet)
@@ -723,6 +733,7 @@ awaitable<std::shared_ptr<user>> try_to_login(ip::tcp::socket socket)
 awaitable<void> session(ip::tcp::socket socket)
 {
 	uint32_t user_id = 0;
+	count_helper connection_helper;
 
 	try
 	{
@@ -735,14 +746,13 @@ awaitable<void> session(ip::tcp::socket socket)
 		if (client_user == nullptr)
 		{
 			std::cerr << "Login failed\n";
-			connection_count.fetch_sub(1, std::memory_order_relaxed);
 			co_return;
 		}
 
 		logged_in = true;
 		alive = true;
 
-		std::cout << "Logged in as " << client_user->get_name() << "\n";
+		std::cout << "User " << client_user->get_name() << " has logged in" << "\n";
 
 		user_id = client_user->get_id();
 
@@ -871,7 +881,6 @@ awaitable<void> session(ip::tcp::socket socket)
 		std::cout << "User " << user_id << " disconnected\n";
 	}
 
-	connection_count.fetch_sub(1, std::memory_order_relaxed);
 	co_return;
 }
 
