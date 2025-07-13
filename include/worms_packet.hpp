@@ -50,6 +50,7 @@ namespace worms_server
 		void set_data_length(size_t length);
 
 		[[nodiscard]] const packet_fields& fields() const;
+		void dump_log() const;
 
 		/*template <packet_code Code, typename... Args>
 		[[nodiscard]]

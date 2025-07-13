@@ -28,7 +28,7 @@ worms_server::worms_packet::read_from(
 	const uint32_t code_value = reader.read_le<uint32_t>().value();
 	if (!packet_code_exists(code_value))
 	{
-		return std::unexpected("Unknown packet code");
+		return std::unexpected(std::format("Unknown packet code: {}", code_value));
 	}
 
 	const auto code = static_cast<packet_code>(code_value);
@@ -251,12 +251,20 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 
 	if (_fields.data.has_value())
 	{
-		const auto encoded = windows_1251::encode(_fields.data.value());
-		const auto bytes = std::as_bytes(std::span{encoded});
+		if (_fields.data.value().empty())
+		{
+			writer.write_le(0);
 
-		writer.write_le(static_cast<uint32_t>(bytes.size_bytes() + 1));
-		writer.write_bytes(bytes);
-		writer.write(0);
+		} else
+		{
+			const auto encoded = windows_1251::encode(_fields.data.value());
+			writer.write_le(static_cast<uint32_t>(encoded.size() + 1));
+
+			// Create a span after writing length
+			writer.write_bytes(std::as_bytes(std::span{encoded}));
+			writer.write(0);
+
+		}
 	}
 
 	if (_fields.error.has_value())
@@ -267,14 +275,17 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 	if (_fields.name.has_value())
 	{
 		const auto encoded = windows_1251::encode(_fields.name.value());
-		const auto bytes = std::as_bytes(std::span{encoded});
-		const auto length = std::min(bytes.size_bytes(), max_name_length);
-
 		std::array<net::byte, max_name_length> buffer{static_cast<net::byte>(0)};
-		std::copy_n(bytes.begin(), length, buffer.begin());
+		const auto length = std::min(encoded.size(), max_name_length);
 
+		std::copy_n(
+			std::as_bytes(std::span{encoded}).begin(),
+			length,
+			buffer.begin()
+		);
 
 		writer.write_bytes(buffer);
+
 	}
 
 	if (_fields.session_info.has_value())
@@ -303,4 +314,20 @@ void worms_server::worms_packet::set_data_length(size_t length)
 const worms_server::packet_fields& worms_server::worms_packet::fields() const
 {
 	return _fields;
+}
+
+void worms_server::worms_packet::dump_log() const
+{
+	std::cout << "Packet code: " << static_cast<uint32_t>(_code) << std::endl;
+	std::cout << "Packet flags: " << get_flags_set() << std::endl;
+	std::cout << "Value 0: " << _fields.value0.value_or(0) << std::endl;
+	std::cout << "Value 1: " << _fields.value1.value_or(0) << std::endl;
+	std::cout << "Value 2: " << _fields.value2.value_or(0) << std::endl;
+	std::cout << "Value 3: " << _fields.value3.value_or(0) << std::endl;
+	std::cout << "Value 4: " << _fields.value4.value_or(0) << std::endl;
+	std::cout << "Value 10: " << _fields.value10.value_or(0) << std::endl;
+	std::cout << "Data length: " << _fields.data_length.value_or(0) << std::endl;
+	std::cout << "Data: " << _fields.data.value_or("") << std::endl;
+	std::cout << "Error: " << _fields.error.value_or(0) << std::endl;
+	std::cout << "Name: " << _fields.name.value_or("") << std::endl;
 }

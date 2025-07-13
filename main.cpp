@@ -456,11 +456,12 @@ awaitable<bool> on_create_game(const std::shared_ptr<user>& client_user,
 							   const std::shared_ptr<database>& database,
 							   const std::shared_ptr<worms_packet>& packet)
 {
-	if (packet->fields().value1.value_or(1) != 0 || packet->fields().value2.value_or(0) != client_user->get_id() ||
-		packet->
-		fields().value4.value_or(0) != 0x800
-		|| !packet->fields().data.has_value() || !packet->fields().name.has_value() || !packet->fields().session_info.
-		has_value())
+	if (packet->fields().value1.value_or(1) != 0
+		|| packet->fields().value2.value_or(0) != client_user->get_room_id()
+		|| packet->fields().value4.value_or(0) != 0x800
+		|| !packet->fields().data.has_value()
+		|| !packet->fields().name.has_value()
+		|| !packet->fields().session_info.has_value())
 	{
 		std::cerr << "Invalid packet data\n";
 		co_return false;
@@ -746,13 +747,12 @@ awaitable<void> session(ip::tcp::socket socket)
 		user_id = client_user->get_id();
 
 		boost::system::error_code error_code;
-		std::vector<std::byte> incoming(1024);
+		std::vector<std::byte> incoming(1024 * 2);
 		auto database = database::get_instance();
 
 		while (alive)
 		{
 			// Wait for the client to send a packet
-			//const size_t read = co_await client_user->async_receive(buffer(incoming), error_code);
 			const size_t read = co_await client_user->async_receive(buffer(incoming), error_code);
 
 			if (error_code != boost::system::errc::success)
@@ -767,101 +767,94 @@ awaitable<void> session(ip::tcp::socket socket)
 				break;
 			}
 
-			// Keep reading packets until we can't
-			while (alive)
+			auto packet_reader = net::packet_reader(incoming);
+			const auto packet = worms_packet::read_from(packet_reader);
+			if (!packet.has_value())
 			{
-				// ReSharper disable once CppDeclarationHidesLocal
-				auto packet_reader = net::packet_reader(incoming);
-				const auto packet = worms_packet::read_from(packet_reader);
-				if (!packet.has_value())
-				{
-					std::cerr << "Error reading packet: " << packet.error() << "\n";
-					alive = false;
-					break;
-				}
-
-				const auto& optional_packet = packet.value();
-				if (!optional_packet.has_value())
-				{
-					// Needs more data
-					break;
-				}
-
-				const auto consumed = packet_reader.bytes_read();
-				if (packet_reader.bytes_read() > 0)
-				{
-					std::memmove(incoming.data(), incoming.data() + consumed, incoming.size() - consumed);
-					incoming.resize(incoming.size() - consumed);
-				}
-
-				const auto& parsed_packet = optional_packet.value();
-
-				switch (const auto packet_code = parsed_packet->code())
-				{
-				case packet_code::login:
-					std::cerr << "Login packet shouldn't be received again\n";
-					break;
-
-				case packet_code::chat_room:
-					if (!co_await on_chat_room(client_user, database, parsed_packet))
-					{
-						alive = false;
-					}
-					break;
-
-				case packet_code::list_users:
-					if (!co_await on_list_users(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::list_rooms:
-					if (!co_await on_list_rooms(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::list_games:
-					if (!co_await on_list_games(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::create_room:
-					if (!co_await on_create_room(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::join:
-					if (!co_await on_join(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::leave:
-					if (!co_await on_leave(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::create_game:
-					if (!co_await on_create_game(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::connect_game:
-					if (!co_await on_connect_game(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				case packet_code::close:
-					if (!co_await on_close(client_user, database, parsed_packet))
-						alive = false;
-					break;
-
-				default:
-					std::cerr << "Unknown packet code: " << static_cast<uint32_t>(packet_code) << "\n";
-					break;
-				}
+				std::cerr << "Error reading packet: " << packet.error() << "\n";
+				alive = false;
+				break;
 			}
 
-			if (!alive)
+			const auto& optional_packet = packet.value();
+			if (!optional_packet.has_value())
 			{
+				// Needs more data
+				continue;
+			}
+
+			if (const auto consumed = packet_reader.bytes_read();
+				packet_reader.bytes_read() > 0 && consumed < incoming.size())
+			{
+				std::copy(
+					incoming.begin() + static_cast<ptrdiff_t>(consumed),
+					incoming.end(),
+					incoming.begin()
+				);
+			}
+
+			const auto& parsed_packet = optional_packet.value();
+
+			switch (const auto packet_code = parsed_packet->code())
+			{
+			case packet_code::login:
+				std::cerr << "Login packet shouldn't be received again\n";
+				break;
+
+			case packet_code::chat_room:
+				if (!co_await on_chat_room(client_user, database, parsed_packet))
+				{
+					alive = false;
+				}
+				break;
+
+			case packet_code::list_users:
+				if (!co_await on_list_users(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::list_rooms:
+				if (!co_await on_list_rooms(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::list_games:
+				if (!co_await on_list_games(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::create_room:
+				if (!co_await on_create_room(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::join:
+				if (!co_await on_join(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::leave:
+				if (!co_await on_leave(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::create_game:
+				if (!co_await on_create_game(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::connect_game:
+				if (!co_await on_connect_game(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			case packet_code::close:
+				if (!co_await on_close(client_user, database, parsed_packet))
+					alive = false;
+				break;
+
+			default:
+				std::cerr << "Unknown packet code: " << static_cast<uint32_t>(packet_code) << "\n";
 				break;
 			}
 		}
@@ -962,8 +955,9 @@ int main(const int argc, char** argv)
 			}
 			else if (max_threads > std::thread::hardware_concurrency())
 			{
-				std::cerr << "Thread count cannot be higher than the number of cores, defaulting to " << std::thread::hardware_concurrency()
-						  << "\n";
+				std::cerr << "Thread count cannot be higher than the number of cores, defaulting to " <<
+					std::thread::hardware_concurrency()
+					<< "\n";
 				max_threads = std::thread::hardware_concurrency();
 			}
 		}
@@ -994,7 +988,6 @@ int main(const int argc, char** argv)
 					io_context.run();
 				});
 			}
-
 		}
 
 		// Run on the main thread too
