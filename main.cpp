@@ -94,7 +94,7 @@ awaitable<void> listener(uint16_t port, size_t max_connections)
 int main(const int argc, char** argv)
 {
 	uint16_t port = 17000;
-	size_t max_connections = 1000;
+	size_t max_connections = 10000;
 	size_t max_threads = std::thread::hardware_concurrency();
 
 	spdlog::init_thread_pool(8192, 1); // queue size, number of threads
@@ -164,6 +164,17 @@ int main(const int argc, char** argv)
 					<< "\n";
 				max_threads = std::thread::hardware_concurrency();
 			}
+		}
+
+		if (arg[0] == "-h" || arg[0] == "--help")
+		{
+			std::cout << "Usage: worms_server [options]\n"
+			          << "Options:\n"
+			          << "  -p, --port <port>        Port to listen on (default: 17000)\n"
+			          << "  -c, --connections <count> Maximum number of connections (default: 10 000)\n"
+			          << "  -t, --threads <count>    Maximum number of threads (default: " << std::thread::hardware_concurrency() << ")\n"
+			          << "  -h, --help               Print this help message\n"
+			          << std::endl;
 		}
 	}
 
