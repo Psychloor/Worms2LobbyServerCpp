@@ -175,6 +175,7 @@ int main(const int argc, char** argv)
 			          << "  -t, --threads <count>    Maximum number of threads (default: " << std::thread::hardware_concurrency() << ")\n"
 			          << "  -h, --help               Print this help message\n"
 			          << std::endl;
+			return 0;
 		}
 	}
 
