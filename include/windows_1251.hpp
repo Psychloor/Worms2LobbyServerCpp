@@ -6,14 +6,18 @@
 #include <array>
 #include <cstdint>
 
-namespace worms_server {
-    class windows_1251 {
+namespace worms_server
+{
+    class windows_1251
+    {
     public:
-        static std::string encode(const std::string& utf8_input) {
+        static std::string encode(const std::string& utf8_input)
+        {
             std::string result;
             result.reserve(utf8_input.length());
 
-            for (size_t i = 0; i < utf8_input.length();) {
+            for (size_t i = 0; i < utf8_input.length();)
+            {
                 uint32_t codepoint;
                 const size_t len = utf8_to_codepoint(utf8_input, i, codepoint);
                 i += len;
@@ -26,11 +30,13 @@ namespace worms_server {
             return result;
         }
 
-        static std::string decode(const std::string& win1251_input) {
+        static std::string decode(const std::string& win1251_input)
+        {
             std::string result;
             result.reserve(win1251_input.length() * 2); // UTF-8 might need more space
 
-            for (const unsigned char c : win1251_input) {
+            for (const unsigned char c : win1251_input)
+            {
                 const uint32_t unicode = windows1251_to_unicode(c);
                 append_utf8(result, unicode);
             }
@@ -39,43 +45,54 @@ namespace worms_server {
         }
 
     private:
-        static size_t utf8_to_codepoint(const std::string& utf8_str, const size_t pos, uint32_t& codepoint) {
+        static size_t utf8_to_codepoint(const std::string& utf8_str, const size_t pos, uint32_t& codepoint)
+        {
             unsigned char first = utf8_str[pos];
 
-            if ((first & 0x80) == 0) {
+            if ((first & 0x80) == 0)
+            {
                 codepoint = first;
                 return 1;
-            } else if ((first & 0xE0) == 0xC0) {
+            }
+            else if ((first & 0xE0) == 0xC0)
+            {
                 if (pos + 1 >= utf8_str.length()) return 0;
                 codepoint = ((first & 0x1F) << 6) | (utf8_str[pos + 1] & 0x3F);
                 return 2;
-            } else if ((first & 0xF0) == 0xE0) {
+            }
+            else if ((first & 0xF0) == 0xE0)
+            {
                 if (pos + 2 >= utf8_str.length()) return 0;
                 codepoint = ((first & 0x0F) << 12) |
-                           ((utf8_str[pos + 1] & 0x3F) << 6) |
-                           (utf8_str[pos + 2] & 0x3F);
+                    ((utf8_str[pos + 1] & 0x3F) << 6) |
+                    (utf8_str[pos + 2] & 0x3F);
                 return 3;
             }
             return 0;
         }
 
-        static void append_utf8(std::string& str, const uint32_t codepoint) {
-            if (codepoint <= 0x7F) {
+        static void append_utf8(std::string& str, const uint32_t codepoint)
+        {
+            if (codepoint <= 0x7F)
+            {
                 str.push_back(static_cast<char>(codepoint));
             }
-            else if (codepoint <= 0x7FF) {
+            else if (codepoint <= 0x7FF)
+            {
                 str.push_back(static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
                 str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
             }
-            else if (codepoint <= 0xFFFF) {
+            else if (codepoint <= 0xFFFF)
+            {
                 str.push_back(static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
                 str.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
                 str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
             }
         }
 
-         static uint32_t windows1251_to_unicode(const unsigned char win1251_char) {
-              constexpr static const std::array<uint32_t, 128> conversion_table = {
+        static uint32_t windows1251_to_unicode(const unsigned char win1251_char)
+        {
+            constexpr static const std::array<uint32_t, 128> conversion_table = {
                 0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021,
                 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
                 0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
@@ -94,29 +111,34 @@ namespace worms_server {
                 0x0448, 0x0449, 0x044A, 0x044B, 0x044C, 0x044D, 0x044E, 0x044F
             };
 
-            if (win1251_char < 0x80) {
+            if (win1251_char < 0x80)
+            {
                 return win1251_char;
             }
             return conversion_table[win1251_char - 0x80];
         }
 
-        constexpr static uint8_t unicode_to_windows1251(const uint32_t unicode) {
-            if (unicode < 0x80) {
+        constexpr static uint8_t unicode_to_windows1251(const uint32_t unicode)
+        {
+            if (unicode < 0x80)
+            {
                 return static_cast<uint8_t>(unicode);
             }
 
             // Simple lookup table for common Cyrillic characters
-            if (unicode >= 0x0410 && unicode <= 0x044F) {
+            if (unicode >= 0x0410 && unicode <= 0x044F)
+            {
                 return static_cast<uint8_t>(unicode - 0x0350);
             }
 
             // Handle special cases
-            switch (unicode) {
-                case 0x2116: return 0xB9; // №
-                case 0x0401: return 0xA8; // Ё
-                case 0x0451: return 0xB8; // ё
-                // Add more special cases as needed
-                default: return '?';  // Return question mark for unsupported characters
+            switch (unicode)
+            {
+            case 0x2116: return 0xB9; // №
+            case 0x0401: return 0xA8; // Ё
+            case 0x0451: return 0xB8; // ё
+            // Add more special cases as needed
+            default: return '?'; // Return question mark for unsupported characters
             }
         }
     };

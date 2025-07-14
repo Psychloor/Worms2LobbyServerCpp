@@ -10,14 +10,18 @@
 
 #include "database.hpp"
 #include "session_info.hpp"
+#include "spdlog/spdlog.h"
 
 namespace worms_server
 {
-	class room final
+	class room
 	{
 	public:
 		explicit room(uint32_t id, std::string_view name, nation nation, boost::asio::ip::address_v4 address);
-		~room()	{	database::recycle_id(_id);	};
+		~room()
+		{
+			spdlog::info("Room {} has been destroyed", _id);
+		}
 
 		[[nodiscard]] uint32_t get_id() const;
 		[[nodiscard]] std::string_view get_name() const;

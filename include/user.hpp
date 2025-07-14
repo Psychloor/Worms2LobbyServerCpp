@@ -5,60 +5,50 @@
 #ifndef USER_HPP
 #define USER_HPP
 
-#include <deque>
 #include <memory>
 #include <shared_mutex>
 #include <string>
 
 #include <boost/asio.hpp>
-#include <boost/asio/awaitable.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/steady_timer.hpp>
 
 #include "database.hpp"
 #include "session_info.hpp"
 #include "worms_packet.hpp"
 
-#include "concurrentqueue.hpp"
+#include "user_session.hpp"
+#include "spdlog/spdlog.h"
 
 namespace worms_server
 {
-	using tcp = boost::asio::ip::tcp;
-
-	class user final
+	class user
 	{
 	public:
-		explicit user(tcp::socket socket, uint32_t id, std::string_view name, nation nation);
-		~user() {	database::recycle_id(_id);	};
+		explicit user(const std::shared_ptr<user_session>& session, uint32_t id, std::string_view name, nation nation);
+		~user()
+		{
+			spdlog::info("User {} has been destroyed", _id);
+		}
 
 		[[nodiscard]] uint32_t get_id() const;
 		[[nodiscard]] std::string_view get_name() const;
 		[[nodiscard]] const session_info& get_session_info() const;
 		[[nodiscard]] uint32_t get_room_id() const;
 		void set_room_id(uint32_t room_id);
+		void clear_session();
+		void send_packet(const std::span<const std::byte>& packet) const;
 
-		void send_packet(const std::span<const std::byte>& packet);
+		ip::address_v4 get_address() const;
 
-		// called by the server
-		void start_writer();
-		boost::asio::awaitable<size_t> async_receive(const boost::asio::mutable_buffer& buffer,
-													 boost::system::error_code& ec);
 
-		boost::asio::ip::address_v4 get_address() const;
 
 	private:
 		mutable std::shared_mutex _mutex;
 
-		boost::asio::awaitable<void> writer();
-
-		tcp::socket _socket;
 		uint32_t _id;
 		std::string _name;
 		session_info _session_info;
-		uint32_t _room_id;
-
-		boost::asio::steady_timer _timer;
-		moodycamel::ConcurrentQueue<std::vector<std::byte>> _packets;
+		uint32_t _room_id{0};
+		std::weak_ptr<user_session> _session;
 	};
 }
 

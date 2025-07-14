@@ -9,15 +9,19 @@
 
 #include "database.hpp"
 #include "session_info.hpp"
+#include "spdlog/spdlog.h"
 
 namespace worms_server
 {
-	class game final
+	class game
 	{
 	public:
 		explicit game(uint32_t id, std::string_view name, nation nation, uint32_t room_id,
 					  boost::asio::ip::address_v4 address, session_access access);
-		~game()	{	database::recycle_id(_id);	};
+		~game()
+		{
+			spdlog::info("Game {} has been destroyed", _id);
+		}
 
 		[[nodiscard]] uint32_t get_id() const;
 		[[nodiscard]] std::string_view get_name() const;

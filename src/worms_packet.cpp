@@ -13,7 +13,8 @@
 #include "packet_flags.hpp"
 #include "windows_1251.hpp"
 
-worms_server::worms_packet::worms_packet(const packet_code code, packet_fields fields) : _code(code), _flags(0), _fields(std::move(fields))
+worms_server::worms_packet::worms_packet(const packet_code code, packet_fields fields) : _code(code), _flags(0),
+	_fields(std::move(fields))
 {
 }
 
@@ -59,7 +60,7 @@ worms_server::worms_packet::read_from(
 		{
 			return std::nullopt;
 		}
-		packet->_fields.value2=(reader.read_le<uint32_t>().value());
+		packet->_fields.value2 = (reader.read_le<uint32_t>().value());
 	}
 
 	if (has_flag(flags, packet_flags::value3))
@@ -68,7 +69,7 @@ worms_server::worms_packet::read_from(
 		{
 			return std::nullopt;
 		}
-		packet->_fields.value3=(reader.read_le<uint32_t>().value());
+		packet->_fields.value3 = (reader.read_le<uint32_t>().value());
 	}
 
 	if (has_flag(flags, packet_flags::value4))
@@ -77,15 +78,16 @@ worms_server::worms_packet::read_from(
 		{
 			return std::nullopt;
 		}
-		packet->_fields.value4=(reader.read_le<uint32_t>().value());
+		packet->_fields.value4 = (reader.read_le<uint32_t>().value());
 	}
 
 	if (has_flag(flags, packet_flags::value10))
 	{
 		if (!reader.can_read(sizeof(uint32_t)))
 		{
+			return std::nullopt;
 		}
-		packet->_fields.value10=(reader.read_le<uint32_t>().value());
+		packet->_fields.value10 = (reader.read_le<uint32_t>().value());
 	}
 
 	if (has_flag(flags, packet_flags::data_length))
@@ -115,7 +117,8 @@ worms_server::worms_packet::read_from(
 		if (packet->data_length() == 0)
 		{
 			packet->_fields.data = "";
-		} else
+		}
+		else
 		{
 			const auto bytes = reader.read_bytes(packet->data_length()).value();
 			// Ensure we have at least one byte for null terminator
@@ -126,7 +129,7 @@ worms_server::worms_packet::read_from(
 
 			const auto encoded = std::string(
 				reinterpret_cast<const char*>(bytes.data()),
-				bytes.size()// - 1 // Subtract 1 to exclude null terminator
+				bytes.size() // - 1 // Subtract 1 to exclude null terminator
 			);
 
 			// Add size check before decoding
@@ -145,7 +148,6 @@ worms_server::worms_packet::read_from(
 
 			packet->_fields.data = decoded;
 		}
-
 	}
 
 	if (has_flag(flags, packet_flags::error))
@@ -154,7 +156,7 @@ worms_server::worms_packet::read_from(
 		{
 			return std::nullopt;
 		}
-		packet->_fields.error=(reader.read_le<uint32_t>().value());
+		packet->_fields.error = (reader.read_le<uint32_t>().value());
 	}
 
 	if (has_flag(flags, packet_flags::name))
@@ -190,7 +192,6 @@ worms_server::worms_packet::read_from(
 		}
 
 		packet->_fields.name = name_decoded;
-
 	}
 
 	if (has_flag(flags, packet_flags::session_info))
@@ -208,7 +209,7 @@ worms_server::worms_packet::read_from(
 
 		session_info info = result.value().value();
 		info.game_release = 49;
-		packet->_fields.session_info= info;
+		packet->_fields.session_info = info;
 	}
 
 	return std::make_optional(std::move(packet));
@@ -254,8 +255,8 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 		if (_fields.data.value().empty())
 		{
 			writer.write_le(0);
-
-		} else
+		}
+		else
 		{
 			const auto encoded = windows_1251::encode(_fields.data.value());
 			writer.write_le(static_cast<uint32_t>(encoded.size() + 1));
@@ -263,7 +264,6 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 			// Create a span after writing length
 			writer.write_bytes(std::as_bytes(std::span{encoded}));
 			writer.write(0);
-
 		}
 	}
 
@@ -285,7 +285,6 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 		);
 
 		writer.write_bytes(buffer);
-
 	}
 
 	if (_fields.session_info.has_value())

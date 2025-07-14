@@ -135,7 +135,8 @@ void worms_server::database::set_user_room_id(const uint32_t user_id, const uint
 {
 	std::unique_lock lock(_users_mutex);
 
-	if (const auto it = _users.find(user_id); it != _users.end()) {
+	if (const auto it = _users.find(user_id); it != _users.end())
+	{
 		it->second->set_room_id(room_id);
 		return;
 	}
@@ -154,6 +155,7 @@ void worms_server::database::remove_user(const uint32_t id)
 {
 	std::scoped_lock lock(_users_mutex);
 	_users.erase(id);
+	_recycled_ids.enqueue(id);
 }
 
 void worms_server::database::add_room(std::shared_ptr<room> room)
@@ -167,6 +169,7 @@ void worms_server::database::remove_room(const uint32_t id)
 {
 	std::scoped_lock lock(_rooms_mutex);
 	_rooms.erase(id);
+	_recycled_ids.enqueue(id);
 }
 
 void worms_server::database::add_game(std::shared_ptr<game> game)
@@ -180,4 +183,5 @@ void worms_server::database::remove_game(const uint32_t id)
 {
 	std::scoped_lock lock(_games_mutex);
 	_games.erase(id);
+	_recycled_ids.enqueue(id);
 }

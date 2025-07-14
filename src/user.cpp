@@ -4,18 +4,12 @@
 
 #include "user.hpp"
 
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/redirect_error.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <boost/asio/write.hpp>
+#include "user_session.hpp"
 
-worms_server::user::user(tcp::socket socket, const uint32_t id, const std::string_view name, const nation nation) :
-	_socket(
-		std::move(socket)), _id(id), _name(name), _session_info{nation, session_type::user}, _room_id(0),
-	_timer(socket.get_executor())
+worms_server::user::user(const std::shared_ptr<user_session>& session, const uint32_t id, const std::string_view name,
+						 const nation nation) : _id(id), _name(name), _session_info(nation, session_type::user),
+												_session(session)
 {
-	_timer.expires_at(std::chrono::steady_clock::time_point::max());
 }
 
 uint32_t worms_server::user::get_id() const
@@ -48,53 +42,32 @@ void worms_server::user::set_room_id(const uint32_t room_id)
 	_room_id = room_id;
 }
 
-void worms_server::user::send_packet(const std::span<const std::byte>& packet)
+void worms_server::user::clear_session()
 {
-	_packets.enqueue({packet.begin(), packet.end()});
-	_timer.cancel_one();
+	std::unique_lock lock(_mutex);
+	_session.reset();
 }
 
-void worms_server::user::start_writer()
+void worms_server::user::send_packet(const std::span<const std::byte>& packet) const
 {
-	co_spawn(_socket.get_executor(), [this] { return writer(); }, boost::asio::detached);
-}
-
-boost::asio::awaitable<size_t> worms_server::user::async_receive(const boost::asio::mutable_buffer& buffer,
-																 boost::system::error_code& ec)
-{
-	return _socket.async_receive(buffer, redirect_error(boost::asio::use_awaitable, ec));
+	if (!_session.expired())
+	{
+		if (const auto session = _session.lock(); session != nullptr)
+		{
+			session->send_packet(packet);
+		}
+	}
 }
 
 boost::asio::ip::address_v4 worms_server::user::get_address() const
 {
-	return _socket.remote_endpoint().address().to_v4();
-}
-
-boost::asio::awaitable<void> worms_server::user::writer()
-{
-	try
+	if (!_session.expired())
 	{
-		std::vector<std::byte> current_packet;
-
-		while (_socket.is_open())
+		if (const auto session = _session.lock(); session != nullptr)
 		{
-			if (_packets.try_dequeue(current_packet))
-			{
-				// Send packets as long as we have them
-				do
-				{
-					co_await boost::asio::async_write(_socket,
-						boost::asio::buffer(current_packet),
-						boost::asio::use_awaitable);
-				} while (_packets.try_dequeue(current_packet));
-			}
-
-			// Only wait if we had no packets
-			boost::system::error_code ec;
-			co_await _timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+			return session->address_v4();
 		}
 	}
-	catch (std::exception&)
-	{
-	}
+
+	return {};
 }

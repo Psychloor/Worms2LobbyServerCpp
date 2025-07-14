@@ -30,8 +30,6 @@ namespace worms_server
 	{
 		return (value & static_cast<uint32_t>(flag)) != 0;
 	}
-
-
 }
 
 #endif //PACKET_FLAGS_HPP

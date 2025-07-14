@@ -28,7 +28,6 @@ namespace net
 	using byte = std::byte;
 
 
-
 	// -----------------------------------------------------------
 	// PacketWriter – append‑only binary buffer for outgoing packets.
 	// -----------------------------------------------------------
@@ -67,7 +66,7 @@ namespace net
 		void write_c_string(std::string_view str)
 		{
 			write_bytes(std::as_bytes(std::span{str}));
-			write<byte>(byte{0});   // ok, note it's a NULL terminator
+			write<byte>(byte{0}); // ok, note it's a NULL terminator
 		}
 
 		// Accessors
@@ -86,7 +85,7 @@ namespace net
 	{
 	public:
 		// Constructors with deduction guides
-		constexpr explicit  packet_reader(const std::span<const std::byte> data) noexcept : _base(data), _consumed(0)
+		constexpr explicit packet_reader(const std::span<const std::byte> data) noexcept : _base(data), _consumed(0)
 		{
 		}
 
