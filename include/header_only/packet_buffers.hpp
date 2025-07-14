@@ -18,8 +18,8 @@
 // -----------------------------------------------------------------------------
 // Packet buffer utilities for modern C++23/26 async networking.
 // Provides:
-//   • net::PacketWriter – owning, resizable binary buffer for outgoing packets
-//   • net::PacketReader – non-owning view that tracks read offset
+//   • net::packet_writer – owning, resizable binary buffer for outgoing packets
+//   • net::packet_reader – non-owning view that tracks read offset
 //   • Endian‑aware write/read helpers (LE/BE)
 // -----------------------------------------------------------------------------
 
@@ -27,16 +27,45 @@ namespace net
 {
 	using byte = std::byte;
 
+	// Base bytes struct with CRTP pattern
+	template<typename Derived>
+	struct bytes_base : std::enable_shared_from_this<Derived> {
+		virtual ~bytes_base() = default;
+		using byte = std::byte;
 
-	struct bytes : public std::enable_shared_from_this<bytes>
-	{
-		explicit bytes(const std::vector<byte>& data) : data(data) {}
-		explicit bytes(std::vector<byte>&& data) : data(std::move(data)) {}
+		[[nodiscard]] std::span<const byte> view() const noexcept {
+			return {data(), size()};
+		}
 
-		std::vector<byte> data;
+		[[nodiscard]] virtual const byte* data() const noexcept = 0;
+		[[nodiscard]] virtual size_t size() const noexcept = 0;
 	};
 
-	using shared_bytes = std::shared_ptr<bytes>;
+	// Immutable shared bytes implementation
+	struct shared_bytes final : bytes_base<shared_bytes> {
+		explicit shared_bytes(std::vector<byte>&& data)
+			: _data(std::move(data)) {}
+
+		[[nodiscard]] const byte* data() const noexcept override {
+			return _data.data();
+		}
+		[[nodiscard]] size_t size() const noexcept override {
+			return _data.size();
+		}
+
+	private:
+		std::vector<byte> _data;
+	};
+
+
+
+	// Helper for creating shared bytes
+	template<typename... Args>
+	[[nodiscard]] auto make_shared_bytes(Args&&... args) {
+		return std::make_shared<shared_bytes>(std::forward<Args>(args)...);
+	}
+
+	using shared_bytes_ptr = std::shared_ptr<shared_bytes>;
 
 	// -----------------------------------------------------------
 	// PacketWriter – append‑only binary buffer for outgoing packets.
@@ -83,10 +112,17 @@ namespace net
 		[[nodiscard]] constexpr std::span<const byte> span() const noexcept { return _buffer; }
 		[[nodiscard]] constexpr size_t size() const noexcept { return _buffer.size(); }
 
-		[[nodiscard]] shared_bytes freeze() const
-		{
-			return std::make_shared<bytes>(std::move(_buffer));
+		[[nodiscard]] net::shared_bytes_ptr to_shared() && {
+			return make_shared_bytes(std::move(_buffer));
 		}
+
+		// Efficient append from shared_bytes
+		void append_bytes(const net::shared_bytes& bytes) {
+			_buffer.insert(_buffer.end(),
+						  bytes.data(),
+						  bytes.data() + bytes.size());
+		}
+
 
 
 		constexpr void clear() noexcept { _buffer.clear(); }

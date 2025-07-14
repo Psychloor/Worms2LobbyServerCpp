@@ -35,11 +35,9 @@ namespace worms_server
 		[[nodiscard]] uint32_t get_room_id() const;
 		void set_room_id(uint32_t room_id);
 
-		void send_packet(const net::shared_bytes& packet) const;
+		void send_packet(const net::shared_bytes_ptr& packet) const;
 
 		boost::asio::ip::address_v4 get_address() const;
-
-
 
 	private:
 		uint32_t _id;

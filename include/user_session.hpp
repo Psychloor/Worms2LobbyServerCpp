@@ -27,7 +27,7 @@ namespace worms_server
 
 		awaitable<void> run();
 
-		void send_packet(const net::shared_bytes& packet);
+		void send_packet(const net::shared_bytes_ptr& packet);
 		ip::address_v4 address_v4() const;
 
 	private:
@@ -42,7 +42,7 @@ namespace worms_server
 		std::shared_ptr<user> _user;
 
 		steady_timer _timer;
-		moodycamel::ConcurrentQueue<net::shared_bytes> _packets;
+		moodycamel::ConcurrentQueue<net::shared_bytes_ptr> _packets;
 	};
 }
 

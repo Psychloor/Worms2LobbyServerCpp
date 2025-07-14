@@ -14,11 +14,11 @@
 
 using namespace worms_server;
 
-net::shared_bytes worms_packet::freeze(const packet_code code, packet_fields fields)
+net::shared_bytes_ptr worms_packet::freeze(const packet_code code, packet_fields fields)
 {
 	net::packet_writer writer;
-	worms_packet(code, std::move(fields)).write_to(writer);
-	return writer.freeze();
+	worms_packet{code, std::move(fields)}.write_to(writer);
+	return std::move(writer).to_shared();
 }
 
 worms_packet::worms_packet(const packet_code code, packet_fields fields) : _code(code), _flags(0),

@@ -33,7 +33,7 @@ namespace worms_server
 		static constexpr size_t max_data_length = 0x200;
 		static constexpr size_t max_name_length = 20;
 
-		static net::shared_bytes freeze(packet_code code, packet_fields fields = {});
+		static net::shared_bytes_ptr freeze(packet_code code, packet_fields fields = {});
 
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
@@ -66,9 +66,9 @@ namespace worms_server
 			return flags;
 		}
 
-		static const net::shared_bytes& get_list_end_packet()
+		static const net::shared_bytes_ptr& get_list_end_packet()
 		{
-			static const auto packet = worms_packet::freeze(packet_code::list_end);
+			static const auto packet = freeze(packet_code::list_end);
 			return packet;
 		}
 

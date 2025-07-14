@@ -137,7 +137,7 @@ namespace worms_server
 		server::connection_count.fetch_sub(1, std::memory_order_relaxed);
 
 		// Clear any pending packets
-		net::shared_bytes bytes;
+		net::shared_bytes_ptr bytes;
 		while (_packets.try_dequeue(bytes))
 		{
 			// Drain the queue
@@ -168,7 +168,7 @@ namespace worms_server
 		co_return;
 	}
 
-	void user_session::send_packet(const std::shared_ptr<net::bytes>& packet)
+	void user_session::send_packet(const net::shared_bytes_ptr& packet)
 	{
 		_packets.enqueue(packet);
 	}
@@ -183,14 +183,14 @@ namespace worms_server
 		using namespace std::chrono_literals;
 		try
 		{
-			net::shared_bytes packet;
+			net::shared_bytes_ptr packet;
 			while (_socket.is_open() && !_is_shutting_down)
 			{
 				// Flush everything currently queued
 				while (_packets.try_dequeue(packet))
 				{
 					boost::system::error_code ec;
-					co_await async_write(_socket, buffer(packet->data),
+					co_await async_write(_socket, buffer(packet->data(), packet->size()),
 										 redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
@@ -269,7 +269,7 @@ namespace worms_server
 			if (found_user != current_users.end())
 			{
 				const auto bytes = worms_packet::freeze(packet_code::login_reply, {.value1 = 0, .error = 1});
-				co_await _socket.async_write_some(buffer(bytes->data), use_awaitable);
+				co_await _socket.async_write_some(buffer(bytes->data(), bytes->size()), use_awaitable);
 				co_return nullptr;
 			}
 			current_users.clear();

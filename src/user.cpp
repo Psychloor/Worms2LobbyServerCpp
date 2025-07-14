@@ -37,14 +37,10 @@ void worms_server::user::set_room_id(const uint32_t room_id)
 	_room_id.store(room_id, std::memory_order_release);
 }
 
-void worms_server::user::send_packet(const net::shared_bytes& packet) const
+void worms_server::user::send_packet(const net::shared_bytes_ptr& packet) const
 {
-	if (!_session.expired())
-	{
-		if (const auto session = _session.lock(); session != nullptr)
-		{
-			session->send_packet(packet->shared_from_this());
-		}
+	if (auto session = _session.lock()) {
+		session->send_packet(packet);
 	}
 }
 
