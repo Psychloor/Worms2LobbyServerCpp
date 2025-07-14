@@ -12,8 +12,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "packet_handler.hpp"
-
-std::atomic<unsigned int> worms_server::user_session::connection_count{0};
+#include "server.hpp"
 
 namespace worms_server
 {
@@ -38,7 +37,6 @@ namespace worms_server
 		if (room_closed)
 		{
 			database->remove_room(room_id);
-			spdlog::info("Room {} closed", room_id);
 		}
 
 		net::packet_writer writer;
@@ -100,7 +98,6 @@ namespace worms_server
 			left_id = game->get_id();
 
 			database->remove_game(left_id);
-			spdlog::info("Game {} closed", left_id);
 
 			net::packet_writer writer;
 
@@ -144,7 +141,7 @@ namespace worms_server
 	user_session::user_session(ip::tcp::socket socket): _socket(std::move(socket)), _timer(_socket.get_executor())
 	{
 		_timer.expires_at(std::chrono::steady_clock::time_point::max());
-		connection_count.fetch_add(1, std::memory_order_relaxed);
+		server::connection_count.fetch_add(1, std::memory_order_relaxed);
 	}
 
 	user_session::~user_session()
@@ -152,7 +149,7 @@ namespace worms_server
 		_is_shutting_down = true;
 		_socket.close();
 
-		connection_count.fetch_sub(1, std::memory_order_relaxed);
+		server::connection_count.fetch_sub(1, std::memory_order_relaxed);
 
 		// Clear any pending packets
 		std::vector<std::byte> pkt;

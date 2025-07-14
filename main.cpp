@@ -13,82 +13,8 @@
 #include "spdlog/cfg/env.h"
 #include "spdlog/sinks/daily_file_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
-
-#include <boost/asio.hpp>
-
+#include "server.hpp"
 #include "user_session.hpp"
-
-using boost::asio::awaitable;
-using boost::asio::use_awaitable;
-using namespace boost::asio;
-
-awaitable<void> listener(uint16_t port, size_t max_connections)
-{
-	spdlog::info("Starting server listener");
-	try
-	{
-		auto executor = co_await this_coro::executor;
-		ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), port});
-
-		if (acceptor.is_open())
-		{
-			spdlog::info("Listening on port {}", port);
-			acceptor.set_option(ip::tcp::acceptor::reuse_address(true));
-		}
-		else
-		{
-			spdlog::error("Error opening port {}", port);
-			co_return;
-		}
-
-		for (;;)
-		{
-			boost::system::error_code ec;
-			ip::tcp::socket socket{executor};
-
-			spdlog::debug("Waiting for connection");
-			co_await acceptor.async_accept(socket, redirect_error(use_awaitable, ec));
-
-			if (!ec)
-			{
-				const auto remote_endpoint = socket.remote_endpoint();
-				spdlog::info("Accepted connection from {}", remote_endpoint.address().to_string());
-
-				if (worms_server::user_session::connection_count.load(std::memory_order_acquire) >= max_connections)
-				{
-					spdlog::error("Too many connections ({}), closing connection",
-								  worms_server::user_session::connection_count.load());
-					socket.close();
-					continue;
-				}
-
-
-				socket.set_option(ip::tcp::no_delay(true));
-				socket.set_option(ip::tcp::socket::keep_alive(true));
-
-				const auto session = std::make_shared<worms_server::user_session>(std::move(socket));
-
-				spdlog::debug("Spawning session coroutine");
-				co_spawn(executor, session->run(), detached);
-			}
-			else
-			{
-				spdlog::error("Error accepting connection: {}", ec.message());
-			}
-		}
-	}
-	catch (const std::exception& e)
-	{
-		spdlog::error("Fatal listener error: {}", e.what());
-	}
-	catch (...)
-	{
-		spdlog::error("Unknown fatal listener error");
-	}
-
-	spdlog::info("Listener shutting down");
-	co_return;
-}
 
 
 void initialize_logging()
@@ -193,34 +119,13 @@ int main(const int argc, char** argv)
 
 	try
 	{
-		io_context io_context;
-
-		co_spawn(io_context, listener(port, max_connections), detached);
-
-		signal_set signals(io_context, SIGINT, SIGTERM);
-		signals.async_wait([&](const boost::system::error_code& error, int signal_number)
-		{
-			io_context.stop();
-		});
-
-		spdlog::info("Press Ctrl+C to exit");
-
-		// Multithreaded run
-		std::vector<std::jthread> threads;
-		for (size_t i = 0; i < (max_threads - 1); ++i)
-		{
-			threads.emplace_back([&io_context]
-			{
-				io_context.run();
-			});
-		}
-
-		// Run on the main thread too
-		io_context.run();
+		worms_server::server server(port, max_connections);
+		server.run(max_threads);
 	}
 	catch (const std::exception& e)
 	{
 		spdlog::error("Fatal: {}", e.what());
+		return 1;
 	}
 
 	return 0;

@@ -27,6 +27,7 @@ set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/game.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/user_session.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_handler.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/server.hpp
 )
 
 set(SOURCES
@@ -37,6 +38,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/game.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/user_session.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/packet_handler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
+
 )
 
 find_package(Boost REQUIRED)

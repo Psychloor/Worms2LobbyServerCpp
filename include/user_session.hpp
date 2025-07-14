@@ -22,8 +22,6 @@ namespace worms_server
 	class user_session final : public std::enable_shared_from_this<user_session>
 	{
 	public:
-		static std::atomic_uint32_t connection_count;
-
 		explicit user_session(ip::tcp::socket socket);
 		~user_session();
 
