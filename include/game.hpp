@@ -20,7 +20,7 @@ namespace worms_server
 
 		~game()
 		{
-			spdlog::debug("Game {} has been destroyed", _id);
+			spdlog::debug("Game {} has been destroyed", id_);
 		}
 
 		[[nodiscard]] uint32_t get_id() const;
@@ -30,11 +30,11 @@ namespace worms_server
 		[[nodiscard]] uint32_t get_room_id() const;
 
 	private:
-		uint32_t _id;
-		std::string _name;
-		session_info _session_info;
-		boost::asio::ip::address_v4 _address;
-		uint32_t _room_id;
+		uint32_t id_;
+		std::string name_;
+		session_info session_info_;
+		boost::asio::ip::address_v4 address_;
+		uint32_t room_id_;
 	};
 }
 

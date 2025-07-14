@@ -5,30 +5,32 @@
 #include "room.hpp"
 
 #include <utility>
-
-worms_server::room::room(const uint32_t id, const std::string_view name, const nation nation,
-						 boost::asio::ip::address_v4 address) : _id(id), _name(name),
-																_session_info{nation, session_type::room},
-																_address(std::move(address))
+namespace worms_server
 {
-}
+	room::room(const uint32_t id, const std::string_view name, const nation nation,
+							 boost::asio::ip::address_v4 address) : id_(id), name_(name),
+																	session_info_{nation, session_type::room},
+																	address_(std::move(address))
+	{
+	}
 
-uint32_t worms_server::room::get_id() const
-{
-	return _id;
-}
+	uint32_t room::get_id() const
+	{
+		return id_;
+	}
 
-std::string_view worms_server::room::get_name() const
-{
-	return _name;
-}
+	std::string_view room::get_name() const
+	{
+		return name_;
+	}
 
-const worms_server::session_info& worms_server::room::get_session_info() const
-{
-	return _session_info;
-}
+	const session_info& room::get_session_info() const
+	{
+		return session_info_;
+	}
 
-boost::asio::ip::address_v4 worms_server::room::get_address() const
-{
-	return _address;
+	boost::asio::ip::address_v4 room::get_address() const
+	{
+		return address_;
+	}
 }

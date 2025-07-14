@@ -13,11 +13,11 @@ namespace worms_server
 	std::atomic<unsigned int> server::connection_count{0};
 
 	server::server(const uint16_t port, const size_t max_connections)
-		: _port(port),
-		  _max_connections(max_connections),
-		  _signals(_io_context, SIGINT, SIGTERM)
+		: port_(port),
+		  max_connections_(max_connections),
+		  signals_(io_context_, SIGINT, SIGTERM)
 	{
-		_signals.async_wait([this](const boost::system::error_code&, int)
+		signals_.async_wait([this](const boost::system::error_code&, int)
 		{
 			stop();
 		});
@@ -26,10 +26,10 @@ namespace worms_server
 	awaitable<void> server::listener()
 	{
 		auto executor = co_await this_coro::executor;
-		ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), _port});
+		ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), port_});
 		acceptor.set_option(ip::tcp::acceptor::reuse_address(true));
 
-		spdlog::info("Listening on port {}", _port);
+		spdlog::info("Listening on port {}", port_);
 
 		for (;;)
 		{
@@ -40,7 +40,7 @@ namespace worms_server
 
 			if (!ec)
 			{
-				if (connection_count.load(std::memory_order_acquire) >= _max_connections)
+				if (connection_count.load(std::memory_order_acquire) >= max_connections_)
 				{
 					spdlog::warn("Too many connections, refusing client");
 					socket.close();
@@ -62,22 +62,22 @@ namespace worms_server
 
 	void server::run(const size_t thread_count)
 	{
-		co_spawn(_io_context, listener(), detached);
+		co_spawn(io_context_, listener(), detached);
 		spdlog::info("Press Ctrl+C to exit");
 
 		for (size_t i = 0; i < thread_count - 1; ++i)
 		{
-			_threads.emplace_back([this]()
+			threads_.emplace_back([this]()
 			{
-				_io_context.run();
+				io_context_.run();
 			});
 		}
 
-		_io_context.run();
+		io_context_.run();
 	}
 
 	void server::stop()
 	{
-		_io_context.stop();
+		io_context_.stop();
 	}
 }

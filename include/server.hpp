@@ -26,12 +26,12 @@ namespace worms_server
 	private:
 		awaitable<void> listener();
 
-		uint16_t _port;
-		size_t _max_connections;
+		uint16_t port_;
+		size_t max_connections_;
 
-		io_context _io_context;
-		signal_set _signals;
-		std::vector<std::jthread> _threads;
+		io_context io_context_;
+		signal_set signals_;
+		std::vector<std::jthread> threads_;
 	};
 }
 

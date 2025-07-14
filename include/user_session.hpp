@@ -33,16 +33,13 @@ namespace worms_server
 	private:
 		awaitable<std::shared_ptr<user>> handle_login();
 		awaitable<void> handle_session();
-
 		awaitable<void> writer();
 
-		std::atomic<bool> _is_shutting_down{false};
-
-		ip::tcp::socket _socket;
-		std::shared_ptr<user> _user;
-
-		steady_timer _timer;
-		moodycamel::ConcurrentQueue<net::shared_bytes_ptr> _packets;
+		std::atomic<bool> is_shutting_down_{false};
+		ip::tcp::socket socket_;
+		std::shared_ptr<user> user_;
+		steady_timer timer_;
+		moodycamel::ConcurrentQueue<net::shared_bytes_ptr> packets_;
 	};
 }
 

@@ -43,16 +43,16 @@ namespace worms_server
 		void remove_game(uint32_t id);
 
 	private:
-		mutable std::shared_mutex _users_mutex;
-		mutable std::shared_mutex _rooms_mutex;
-		mutable std::shared_mutex _games_mutex;
+		mutable std::shared_mutex users_mutex_;
+		mutable std::shared_mutex rooms_mutex_;
+		mutable std::shared_mutex games_mutex_;
 
-		std::atomic_uint32_t _next_id = 0x1000;
-		moodycamel::ConcurrentQueue<uint32_t> _recycled_ids;
+		std::atomic_uint32_t next_id_ = 0x1000;
+		moodycamel::ConcurrentQueue<uint32_t> recycled_ids_;
 
-		std::unordered_map<uint32_t, std::shared_ptr<user>> _users;
-		std::unordered_map<uint32_t, std::shared_ptr<room>> _rooms;
-		std::unordered_map<uint32_t, std::shared_ptr<game>> _games;
+		std::unordered_map<uint32_t, std::shared_ptr<user>> users_;
+		std::unordered_map<uint32_t, std::shared_ptr<room>> rooms_;
+		std::unordered_map<uint32_t, std::shared_ptr<game>> games_;
 	};
 }
 

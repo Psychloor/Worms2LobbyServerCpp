@@ -21,43 +21,43 @@ namespace net
 	public:
 		explicit framed_packet_reader(const size_t initial_capacity = 1024)
 		{
-			_buffer.reserve(initial_capacity);
+			buffer_.reserve(initial_capacity);
 		}
 
 		void append(const std::byte* data, const size_t length)
 		{
-			_buffer.insert(_buffer.end(), data, data + length);
+			buffer_.insert(buffer_.end(), data, data + length);
 		}
 
 		[[nodiscard]] size_t available_bytes() const noexcept
 		{
-			return _buffer.size();
+			return buffer_.size();
 		}
 
 		[[nodiscard]] std::span<const std::byte> peek() const noexcept
 		{
-			return std::span(_buffer);
+			return std::span(buffer_);
 		}
 
 		void reserve(const size_t capacity)
 		{
-			_buffer.reserve(capacity);
+			buffer_.reserve(capacity);
 		}
 
 		void clear() noexcept
 		{
-			_buffer.clear();
+			buffer_.clear();
 		}
 
 		parse_result try_read_packet()
 		{
-			if (_buffer.empty())
+			if (buffer_.empty())
 			{
 				return std::nullopt;
 			}
 
 			// Create a view of the buffer
-			packet_reader view(_buffer);
+			packet_reader view(buffer_);
 
 			// Try to read a packet
 			auto result = worms_server::worms_packet::read_from(view);
@@ -76,20 +76,20 @@ namespace net
 			// Success - consume bytes
 			if (const size_t consumed = view.bytes_read(); consumed > 0)
 			{
-				if (consumed == _buffer.size())
+				if (consumed == buffer_.size())
 				{
-					_buffer.clear(); // Optimize a common case
+					buffer_.clear(); // Optimize a common case
 				}
 				else
 				{
-					_buffer.erase(_buffer.begin(),
-								  _buffer.begin() + static_cast<ptrdiff_t>(consumed));
+					buffer_.erase(buffer_.begin(),
+								  buffer_.begin() + static_cast<ptrdiff_t>(consumed));
 				}
 
 				// Shrink buffer if it's too large
-				if (_buffer.capacity() > 16384 && _buffer.size() < (_buffer.capacity() >> 2)) // Divide by 4
+				if (buffer_.capacity() > 16384 && buffer_.size() < (buffer_.capacity() >> 2)) // Divide by 4
 				{
-					_buffer.shrink_to_fit();
+					buffer_.shrink_to_fit();
 				}
 			}
 
@@ -97,7 +97,7 @@ namespace net
 		}
 
 	private:
-		std::vector<std::byte> _buffer;
+		std::vector<std::byte> buffer_;
 	};
 }
 

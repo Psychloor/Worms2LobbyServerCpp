@@ -126,22 +126,22 @@ namespace worms_server
 		co_return;
 	}
 
-	user_session::user_session(ip::tcp::socket socket): _socket(std::move(socket)), _timer(_socket.get_executor())
+	user_session::user_session(ip::tcp::socket socket): socket_(std::move(socket)), timer_(socket_.get_executor())
 	{
-		_timer.expires_at(std::chrono::steady_clock::time_point::max());
+		timer_.expires_at(std::chrono::steady_clock::time_point::max());
 		server::connection_count.fetch_add(1, std::memory_order_relaxed);
 	}
 
 	user_session::~user_session()
 	{
-		_is_shutting_down = true;
-		_socket.close();
+		is_shutting_down_ = true;
+		socket_.close();
 
 		server::connection_count.fetch_sub(1, std::memory_order_relaxed);
 
 		// Clear any pending packets
 		net::shared_bytes_ptr bytes;
-		while (_packets.try_dequeue(bytes))
+		while (packets_.try_dequeue(bytes))
 		{
 			// Drain the queue
 		}
@@ -154,31 +154,31 @@ namespace worms_server
 		// Keep ref alive for the full coroutine lifetime
 		auto self = shared_from_this();
 
-		co_spawn(_socket.get_executor(), [self = this]() -> awaitable<void> { co_await self->writer(); }, detached);
+		co_spawn(socket_.get_executor(), [self = this]() -> awaitable<void> { co_await self->writer(); }, detached);
 
-		_user = co_await handle_login();
-		if (_user == nullptr)
+		user_ = co_await handle_login();
+		if (user_ == nullptr)
 		{
 			spdlog::error("Failed to login");
 			co_return;
 		}
 
-		spdlog::info("User {} logged in", _user->get_name());
+		spdlog::info("User {} logged in", user_->get_name());
 
 		co_await handle_session();
 
-		co_await disconnect_user(_user);
+		co_await disconnect_user(user_);
 		co_return;
 	}
 
 	void user_session::send_packet(const net::shared_bytes_ptr& packet)
 	{
-		_packets.enqueue(packet);
+		packets_.enqueue(packet);
 	}
 
 	ip::address_v4 user_session::address_v4() const
 	{
-		return _socket.remote_endpoint().address().to_v4();
+		return socket_.remote_endpoint().address().to_v4();
 	}
 
 	awaitable<void> user_session::writer()
@@ -187,20 +187,20 @@ namespace worms_server
 		try
 		{
 			net::shared_bytes_ptr packet;
-			while (_socket.is_open() && !_is_shutting_down)
+			while (socket_.is_open() && !is_shutting_down_)
 			{
 				// Flush everything currently queued
-				while (_packets.try_dequeue(packet))
+				while (packets_.try_dequeue(packet))
 				{
 					boost::system::error_code ec;
-					co_await async_write(_socket, buffer(packet->data(), packet->size()),
+					co_await async_write(socket_, buffer(packet->data(), packet->size()),
 										 redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
 
-				_timer.expires_after(10ms);
+				timer_.expires_after(10ms);
 				boost::system::error_code ec;
-				co_await _timer.async_wait(redirect_error(use_awaitable, ec));
+				co_await timer_.async_wait(redirect_error(use_awaitable, ec));
 
 				if (ec == error::operation_aborted) continue; // packet arrived
 				if (ec) co_return; // io_context stopped
@@ -222,7 +222,7 @@ namespace worms_server
 			std::vector<std::byte> incoming(1024);
 			boost::system::error_code ec;
 
-			co_await _socket.async_receive(buffer(incoming), redirect_error(use_awaitable, ec));
+			co_await socket_.async_receive(buffer(incoming), redirect_error(use_awaitable, ec));
 			if (ec)
 			{
 				spdlog::error("Error reading login packet: {}", ec.message());
@@ -272,7 +272,7 @@ namespace worms_server
 			if (found_user != current_users.end())
 			{
 				const auto bytes = worms_packet::freeze(packet_code::login_reply, {.value1 = 0, .error = 1});
-				co_await _socket.async_write_some(buffer(bytes->data(), bytes->size()), use_awaitable);
+				co_await socket_.async_write_some(buffer(bytes->data(), bytes->size()), use_awaitable);
 				co_return nullptr;
 			}
 			current_users.clear();
@@ -314,19 +314,19 @@ namespace worms_server
 			const auto database = database::get_instance();
 			net::framed_packet_reader reader;
 
-			while (_socket.is_open())
+			while (socket_.is_open())
 			{
 				try
 				{
 					boost::system::error_code ec;
-					const size_t read = co_await _socket.async_receive(
+					const size_t read = co_await socket_.async_receive(
 						buffer(incoming),
 						redirect_error(use_awaitable, ec)
 					);
 
 					if (read == 0 || ec == error::eof)
 					{
-						spdlog::info("User {} disconnected", _user->get_name());
+						spdlog::info("User {} disconnected", user_->get_name());
 						break;
 					}
 					if (ec)
@@ -353,7 +353,7 @@ namespace worms_server
 							break;
 						}
 
-						if (!co_await packet_handler::handle_packet(_user, database, *maybe_packet))
+						if (!co_await packet_handler::handle_packet(user_, database, *maybe_packet))
 						{
 							spdlog::warn("Packet handler failed or returned false");
 							co_return;
@@ -376,9 +376,9 @@ namespace worms_server
 		// Ensure the socket is closed
 		try
 		{
-			if (_socket.is_open())
+			if (socket_.is_open())
 			{
-				_socket.close();
+				socket_.close();
 			}
 		}
 		catch (const std::exception& e)

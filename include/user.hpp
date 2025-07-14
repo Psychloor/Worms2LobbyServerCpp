@@ -27,7 +27,7 @@ namespace worms_server
 
 		~user()
 		{
-			spdlog::debug("User {} has been destroyed", _id);
+			spdlog::debug("User {} has been destroyed", id_);
 		}
 
 		[[nodiscard]] uint32_t get_id() const;
@@ -41,11 +41,11 @@ namespace worms_server
 		boost::asio::ip::address_v4 get_address() const;
 
 	private:
-		uint32_t _id;
-		std::string _name;
-		session_info _session_info;
-		std::atomic<uint32_t> _room_id;
-		std::weak_ptr<user_session> _session;
+		uint32_t id_;
+		std::string name_;
+		session_info session_info_;
+		std::atomic<uint32_t> room_id_;
+		std::weak_ptr<user_session> session_;
 	};
 }
 

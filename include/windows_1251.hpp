@@ -54,13 +54,13 @@ namespace worms_server
                 codepoint = first;
                 return 1;
             }
-            else if ((first & 0xE0) == 0xC0)
+            if ((first & 0xE0) == 0xC0)
             {
                 if (pos + 1 >= utf8_str.length()) return 0;
                 codepoint = ((first & 0x1F) << 6) | (utf8_str[pos + 1] & 0x3F);
                 return 2;
             }
-            else if ((first & 0xF0) == 0xE0)
+            if ((first & 0xF0) == 0xE0)
             {
                 if (pos + 2 >= utf8_str.length()) return 0;
                 codepoint = ((first & 0x0F) << 12) |

@@ -82,9 +82,9 @@ namespace worms_server
 
 	private:
 		void write_to(net::packet_writer& writer) const;
-		packet_code _code;
-		uint32_t _flags;
-		packet_fields _fields;
+		packet_code code_;
+		uint32_t flags_;
+		packet_fields fields_;
 	};
 }
 
