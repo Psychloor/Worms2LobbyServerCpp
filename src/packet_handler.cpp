@@ -12,7 +12,8 @@
 
 #include "worms_packet.hpp"
 #include "spdlog/spdlog.h"
-#include <boost/algorithm/string.hpp>
+
+#include "utilities.hpp"
 
 namespace worms_server
 {
@@ -271,7 +272,7 @@ namespace worms_server
 		if (std::ranges::any_of(database->get_rooms(),
 								[client_name = client_user->get_name()](const auto& room) -> bool
 								{
-									return boost::iequals(room->get_name(), client_name);
+									return string_equals(room->get_name(), client_name);
 								}))
 		{
 			net::packet_writer writer;

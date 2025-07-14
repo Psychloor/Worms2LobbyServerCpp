@@ -9,11 +9,10 @@
 
 #include <spdlog/spdlog.h>
 
-#include <boost/algorithm/string.hpp>
-
 #include "framed_packet_reader.hpp"
 #include "packet_handler.hpp"
 #include "server.hpp"
+#include "utilities.hpp"
 
 namespace worms_server
 {
@@ -281,7 +280,7 @@ namespace worms_server
 			auto current_users = database->get_users();
 			const auto found_user = std::ranges::find_if(current_users, [&](const auto& user)
 			{
-				return boost::iequals(user->get_name(), username);
+				return string_equals(user->get_name(), username);
 			});
 			if (found_user != current_users.end())
 			{
