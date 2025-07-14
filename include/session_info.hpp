@@ -105,7 +105,7 @@ namespace worms_server
 		const auto result = std::ranges::find_if_not(info.padding,
 			[](const auto& value) { return value == net::byte{0}; });
 
-		if (result != info.padding.end())
+		if (result != std::end(info.padding))
 		{
 			std::cerr << "Wrong Padding" << std::endl;
 			return false;
@@ -136,7 +136,7 @@ namespace worms_server
 
 		const auto padding_bytes = reader.read_bytes(session_info::padding_size)
 										 .value();
-		std::ranges::copy(padding_bytes, info.padding.begin());
+		std::ranges::copy(padding_bytes, std::begin(info.padding));
 
 		if (!verify_session_info(info))
 		{

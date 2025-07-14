@@ -158,7 +158,7 @@ namespace net
 		// Efficient append from shared_bytes
 		void append_bytes(const net::shared_bytes& bytes)
 		{
-			buffer_.insert(buffer_.end(),
+			buffer_.insert(std::end(buffer_),
 						   bytes.data(),
 						   bytes.data() + bytes.size());
 		}
@@ -254,8 +254,8 @@ namespace net
 
 		[[nodiscard]] constexpr std::optional<std::string> read_c_string()
 		{
-			const auto start = data_.begin() + consumed_;
-			const auto end = data_.end();
+			const auto start = std::begin(data_) + static_cast<ptrdiff_t>(consumed_);
+			const auto end = std::end(data_);
 			const auto null_term = std::find(start, end, byte{0});
 
 			if (null_term == end) return std::nullopt;
@@ -311,7 +311,7 @@ namespace net
 			// bit_cast performs compile‑time memcpy, no alignment requirement
 			T v = std::bit_cast<T>(
 				*reinterpret_cast<const std::array<byte, sizeof(T)>*>(data_.
-					begin() + consumed_));
+					begin() + static_cast<ptrdiff_t>(consumed_)));
 			consumed_ += sizeof(T);
 			return v;
 		}
@@ -324,8 +324,8 @@ namespace net
 
 		[[nodiscard]] constexpr std::span<const byte> remaining() const noexcept
 		{
-			return std::span<const byte>{
-				data_.begin() + consumed_, data_.size_bytes() - consumed_
+			return std::span{
+				std::begin(data_) + static_cast<ptrdiff_t>(consumed_), data_.size_bytes() - consumed_
 			};
 		}
 

@@ -27,7 +27,7 @@ namespace net
 
 		void append(const std::byte* data, const size_t length)
 		{
-			buffer_.insert(buffer_.end(), data, data + length);
+			buffer_.insert(std::end(buffer_), data, data + length);
 		}
 
 		[[nodiscard]] size_t available_bytes() const noexcept
@@ -37,7 +37,7 @@ namespace net
 
 		[[nodiscard]] std::span<const std::byte> peek() const noexcept
 		{
-			return std::span(buffer_);
+			return {buffer_};
 		}
 
 		void reserve(const size_t capacity)
@@ -68,7 +68,7 @@ namespace net
 			}
 
 			// Need more data
-			const auto& optional_packet = *result;
+			auto& optional_packet = *result;
 			if (!optional_packet)
 			{
 				return std::nullopt;
@@ -83,8 +83,8 @@ namespace net
 				}
 				else
 				{
-					buffer_.erase(buffer_.begin(),
-								  buffer_.begin() + static_cast<ptrdiff_t>(
+					buffer_.erase(std::cbegin(buffer_),
+								  std::cbegin(buffer_) + static_cast<ptrdiff_t>(
 									  consumed));
 				}
 
