@@ -110,12 +110,14 @@ int main(const int argc, char** argv)
 		spdlog::async_overflow_policy::block);
 
 	spdlog::set_level(spdlog::level::info);
+	spdlog::flush_on(spdlog::level::err);
+	spdlog::flush_every(std::chrono::seconds(10));
 	spdlog::cfg::load_env_levels();
 
 	spdlog::apply_logger_env_levels(logger);
 
 	spdlog::set_default_logger(logger);
-	spdlog::flush_on(spdlog::level::err);
+
 
 	// Make sure to flush when the program exits
 	std::atexit([]()
