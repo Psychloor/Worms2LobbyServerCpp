@@ -19,7 +19,7 @@ namespace worms_server
 					  boost::asio::ip::address_v4 address, session_access access);
 		~game()
 		{
-			spdlog::info("Game {} has been destroyed", _id);
+			spdlog::debug("Game {} has been destroyed", _id);
 		}
 
 		[[nodiscard]] uint32_t get_id() const;

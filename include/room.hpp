@@ -19,7 +19,7 @@ namespace worms_server
 		explicit room(uint32_t id, std::string_view name, nation nation, boost::asio::ip::address_v4 address);
 		~room()
 		{
-			spdlog::info("Room {} has been destroyed", _id);
+			spdlog::debug("Room {} has been destroyed", _id);
 		}
 
 		[[nodiscard]] uint32_t get_id() const;
