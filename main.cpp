@@ -66,28 +66,10 @@ awaitable<void> listener(uint16_t port, size_t max_connections)
 				socket.set_option(ip::tcp::no_delay(true));
 				socket.set_option(ip::tcp::socket::keep_alive(true));
 
-				auto session = std::make_shared<worms_server::user_session>(std::move(socket));
+				const auto session = std::make_shared<worms_server::user_session>(std::move(socket));
 
 				spdlog::debug("Spawning session coroutine");
-				co_spawn(executor,
-						 [session]() -> awaitable<void>
-						 {
-							 try
-							 {
-								 spdlog::debug("Starting session run");
-								 co_await session->run();
-								 spdlog::debug("Session run completed");
-							 }
-							 catch (const std::exception& e)
-							 {
-								 spdlog::error("Session error: {}", e.what());
-							 }
-							 catch (...)
-							 {
-								 spdlog::error("Unknown error in session");
-							 }
-						 },
-						 detached);
+				co_spawn(executor, session->run(),detached);
 			}
 			else
 			{
