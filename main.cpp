@@ -69,7 +69,7 @@ awaitable<void> listener(uint16_t port, size_t max_connections)
 				const auto session = std::make_shared<worms_server::user_session>(std::move(socket));
 
 				spdlog::debug("Spawning session coroutine");
-				co_spawn(executor, session->run(),detached);
+				co_spawn(executor, session->run(), detached);
 			}
 			else
 			{
@@ -91,12 +91,8 @@ awaitable<void> listener(uint16_t port, size_t max_connections)
 }
 
 
-int main(const int argc, char** argv)
+void initialize_logging()
 {
-	uint16_t port = 17000;
-	size_t max_connections = 10000;
-	size_t max_threads = std::thread::hardware_concurrency();
-
 	spdlog::init_thread_pool(8192, 1); // queue size, number of threads
 	const auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	const auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/worms_server.log", 0, 0, true);
@@ -124,8 +120,11 @@ int main(const int argc, char** argv)
 	{
 		spdlog::shutdown();
 	});
+}
 
-
+bool parse_command_line_arguments(const int argc, char** argv, uint16_t& port, size_t& max_connections,
+								  size_t& max_threads)
+{
 	auto args = std::vector<std::string>(argv, argv + argc);
 	for (const auto args_slide = std::ranges::slide_view(args, 2); const auto& arg : args_slide)
 	{
@@ -169,15 +168,28 @@ int main(const int argc, char** argv)
 		if (arg[0] == "-h" || arg[0] == "--help")
 		{
 			std::cout << "Usage: worms_server [options]\n"
-			          << "Options:\n"
-			          << "  -p, --port <port>        Port to listen on (default: 17000)\n"
-			          << "  -c, --connections <count> Maximum number of connections (default: 10 000)\n"
-			          << "  -t, --threads <count>    Maximum number of threads (default: " << std::thread::hardware_concurrency() << ")\n"
-			          << "  -h, --help               Print this help message\n"
-			          << std::endl;
-			return 0;
+				<< "Options:\n"
+				<< "  -p, --port <port>        Port to listen on (default: 17000)\n"
+				<< "  -c, --connections <count> Maximum number of connections (default: 10 000)\n"
+				<< "  -t, --threads <count>    Maximum number of threads (default: " <<
+				std::thread::hardware_concurrency() << ")\n"
+				<< "  -h, --help               Print this help message\n"
+				<< std::endl;
+			return true;
 		}
 	}
+	return false;
+}
+
+int main(const int argc, char** argv)
+{
+	uint16_t port = 17000;
+	size_t max_connections = 10000;
+	size_t max_threads = std::thread::hardware_concurrency();
+
+	initialize_logging();
+
+	if (parse_command_line_arguments(argc, argv, port, max_connections, max_threads)) return 0;
 
 	try
 	{
