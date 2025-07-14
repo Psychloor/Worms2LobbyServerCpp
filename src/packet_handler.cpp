@@ -69,9 +69,7 @@ namespace worms_server
 										const std::shared_ptr<worms_packet>& packet)
 	{
 		if (packet->fields().value0.value_or(0) != client_user->get_id() || !packet->fields().value3.has_value() || !
-			packet
-			->
-			fields().data.has_value())
+			packet->fields().data.has_value())
 		{
 			spdlog::error("Invalid packet data\n");
 			co_return false;
@@ -143,13 +141,11 @@ namespace worms_server
 			co_return false;
 		}
 
-		const auto rooms = database->get_rooms();
-		for (const auto& room : rooms)
+		for (const auto rooms = database->get_rooms(); const auto& room : rooms)
 		{
 			client_user->send_packet(worms_packet::freeze(packet_code::list_item, {
 															  .value1 = room->get_id(),
-															  .name = std::string(room->get_name()),
-															  .data = "",
+															  .name = std::string(room->get_name()), .data = "",
 															  .session_info = room->get_session_info()
 														  }));
 		}
@@ -420,10 +416,8 @@ namespace worms_server
 
 			// Notify other users about the new game, even those in other rooms.
 			const auto packet_bytes = worms_packet::freeze(packet_code::create_game, {
-															   .value1 = game_id,
-															   .value2 = game->get_room_id(),
-															   .value4 = 0x800,
-															   .name = std::string(game->get_name()),
+															   .value1 = game_id, .value2 = game->get_room_id(),
+															   .value4 = 0x800, .name = std::string(game->get_name()),
 															   .data = game->get_address().to_string(),
 															   .session_info = game->get_session_info()
 														   });
@@ -442,8 +436,7 @@ namespace worms_server
 		client_user->send_packet(worms_packet::freeze(packet_code::create_game_reply, {.value1 = 0, .error = 2}));
 		client_user->send_packet(worms_packet::freeze(packet_code::chat_room, {
 														  .value0 = client_user->get_id(),
-														  .value3 = client_user->get_room_id(),
-														  .data =
+														  .value3 = client_user->get_room_id(), .data =
 														  "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
 													  }));
 

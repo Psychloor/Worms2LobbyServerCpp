@@ -21,15 +21,12 @@ namespace worms_server
 {
 	enum class session_type : uint8_t
 	{
-		room = 1,
-		game = 4,
-		user = 5
+		room = 1, game = 4, user = 5
 	};
 
 	enum class session_access : uint8_t
 	{
-		public_access = 1,
-		protected_access = 2,
+		public_access = 1, protected_access = 2,
 	};
 
 	struct session_info
