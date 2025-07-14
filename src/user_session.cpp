@@ -345,12 +345,12 @@ namespace worms_server
 
 					if (read == 0 || ec == error::eof)
 					{
-						spdlog::info("Client {} disconnected", _user->get_name());
+						spdlog::info("User {} disconnected", _user->get_name());
 						break;
 					}
 					if (ec)
 					{
-						spdlog::error("Error reading packet: {}", ec.message());
+						spdlog::error("Error receiving data: {}", ec.message());
 						break;
 					}
 
