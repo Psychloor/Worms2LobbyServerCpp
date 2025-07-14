@@ -20,7 +20,8 @@ namespace worms_server
 {
 	struct packet_fields
 	{
-		std::optional<uint32_t> value0, value1, value2, value3, value4, value10, data_length;
+		std::optional<uint32_t> value0, value1, value2, value3, value4, value10,
+								data_length;
 		std::optional<std::string> name;
 		std::optional<std::string> data;
 		std::optional<session_info> session_info;
@@ -33,11 +34,13 @@ namespace worms_server
 		static constexpr size_t max_data_length = 0x200;
 		static constexpr size_t max_name_length = 20;
 
-		static net::shared_bytes_ptr freeze(packet_code code, packet_fields fields = {});
+		static net::shared_bytes_ptr freeze(packet_code code,
+											packet_fields fields = {});
 
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
-		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_packet>>, std::string>
+		[[nodiscard]] static std::expected<
+			std::optional<std::shared_ptr<worms_packet>>, std::string>
 		read_from(
 			net::packet_reader& reader);
 
@@ -51,19 +54,29 @@ namespace worms_server
 		constexpr auto get_flags_from_fields(this const auto& self)
 		{
 			uint32_t flags = 0;
-			if (self.fields_.value0) flags |= static_cast<uint32_t>(packet_flags::value0);
-			if (self.fields_.value1) flags |= static_cast<uint32_t>(packet_flags::value1);
-			if (self.fields_.value2) flags |= static_cast<uint32_t>(packet_flags::value2);
-			if (self.fields_.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
-			if (self.fields_.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
-			if (self.fields_.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
+			if (self.fields_.value0) flags |= static_cast<uint32_t>(
+				packet_flags::value0);
+			if (self.fields_.value1) flags |= static_cast<uint32_t>(
+				packet_flags::value1);
+			if (self.fields_.value2) flags |= static_cast<uint32_t>(
+				packet_flags::value2);
+			if (self.fields_.value3) flags |= static_cast<uint32_t>(
+				packet_flags::value3);
+			if (self.fields_.value4) flags |= static_cast<uint32_t>(
+				packet_flags::value4);
+			if (self.fields_.value10) flags |= static_cast<uint32_t>(
+				packet_flags::value10);
 			if (self.fields_.data_length || self.fields_.data)
 				flags |= static_cast<uint32_t>(
 					packet_flags::data_length);
-			if (self.fields_.data) flags |= static_cast<uint32_t>(packet_flags::data);
-			if (self.fields_.error) flags |= static_cast<uint32_t>(packet_flags::error);
-			if (self.fields_.name) flags |= static_cast<uint32_t>(packet_flags::name);
-			if (self.fields_.session_info) flags |= static_cast<uint32_t>(packet_flags::session_info);
+			if (self.fields_.data) flags |= static_cast<uint32_t>(
+				packet_flags::data);
+			if (self.fields_.error) flags |= static_cast<uint32_t>(
+				packet_flags::error);
+			if (self.fields_.name) flags |= static_cast<uint32_t>(
+				packet_flags::name);
+			if (self.fields_.session_info) flags |= static_cast<uint32_t>(
+				packet_flags::session_info);
 			return flags;
 		}
 

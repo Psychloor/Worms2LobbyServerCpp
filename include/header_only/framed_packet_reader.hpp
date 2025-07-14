@@ -14,7 +14,8 @@
 namespace net
 {
 	using parse_result =
-	std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>, std::string>;
+	std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>,
+				  std::string>;
 
 	class framed_packet_reader
 	{
@@ -83,11 +84,13 @@ namespace net
 				else
 				{
 					buffer_.erase(buffer_.begin(),
-								  buffer_.begin() + static_cast<ptrdiff_t>(consumed));
+								  buffer_.begin() + static_cast<ptrdiff_t>(
+									  consumed));
 				}
 
 				// Shrink buffer if it's too large
-				if (buffer_.capacity() > 16384 && buffer_.size() < (buffer_.capacity() >> 2)) // Divide by 4
+				if (buffer_.capacity() > 16384 && buffer_.size() < (buffer_.
+					capacity() >> 2)) // Divide by 4
 				{
 					buffer_.shrink_to_fit();
 				}

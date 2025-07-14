@@ -36,11 +36,13 @@ namespace worms_server
 			ip::tcp::socket socket(executor);
 			boost::system::error_code ec;
 
-			co_await acceptor.async_accept(socket, redirect_error(use_awaitable, ec));
+			co_await acceptor.async_accept(
+				socket, redirect_error(use_awaitable, ec));
 
 			if (!ec)
 			{
-				if (connection_count.load(std::memory_order_acquire) >= max_connections_)
+				if (connection_count.load(std::memory_order_acquire) >=
+					max_connections_)
 				{
 					spdlog::warn("Too many connections, refusing client");
 					socket.close();
@@ -50,7 +52,8 @@ namespace worms_server
 				socket.set_option(ip::tcp::no_delay(true));
 				socket.set_option(ip::tcp::socket::keep_alive(true));
 
-				const auto session = std::make_shared<worms_server::user_session>(std::move(socket));
+				const auto session = std::make_shared<
+					worms_server::user_session>(std::move(socket));
 				co_spawn(executor, session->run(), detached);
 			}
 			else

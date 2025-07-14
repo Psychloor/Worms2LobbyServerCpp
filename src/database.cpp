@@ -26,10 +26,12 @@ namespace worms_server
 		if (!instance)
 			throw std::runtime_error("database not initialized");
 
-		if (uint32_t recycled_id; instance->recycled_ids_.try_dequeue(recycled_id))
+		if (uint32_t recycled_id; instance->recycled_ids_.try_dequeue(
+			recycled_id))
 			return recycled_id;
 
-		uint32_t id = instance->next_id_.fetch_add(1, std::memory_order::relaxed);
+		uint32_t id = instance->next_id_.fetch_add(
+			1, std::memory_order::relaxed);
 		if (id == 0 || id < k_start)
 		{
 			id = k_start;
@@ -80,7 +82,8 @@ namespace worms_server
 		std::vector<std::shared_ptr<user>> users;
 
 		users.reserve(users_.size());
-		std::ranges::copy(users_ | std::views::values, std::back_inserter(users));
+		std::ranges::copy(users_ | std::views::values,
+						  std::back_inserter(users));
 
 		return users;
 	}
@@ -91,7 +94,8 @@ namespace worms_server
 		std::vector<std::shared_ptr<room>> rooms;
 
 		rooms.reserve(rooms_.size());
-		std::ranges::copy(rooms_ | std::views::values, std::back_inserter(rooms));
+		std::ranges::copy(rooms_ | std::views::values,
+						  std::back_inserter(rooms));
 		return rooms;
 	}
 
@@ -101,11 +105,13 @@ namespace worms_server
 		std::vector<std::shared_ptr<game>> games;
 
 		games.reserve(games_.size());
-		std::ranges::copy(games_ | std::views::values, std::back_inserter(games));
+		std::ranges::copy(games_ | std::views::values,
+						  std::back_inserter(games));
 		return games;
 	}
 
-	std::vector<std::shared_ptr<user>> database::get_users_in_room(const uint32_t room_id) const
+	std::vector<std::shared_ptr<user>> database::get_users_in_room(
+		const uint32_t room_id) const
 	{
 		std::shared_lock users_lock(users_mutex_);
 
@@ -123,17 +129,23 @@ namespace worms_server
 		return users;
 	}
 
-	std::shared_ptr<game> database::get_game_by_name(std::string_view name) const
+	std::shared_ptr<game> database::get_game_by_name(
+		std::string_view name) const
 	{
 		std::shared_lock lock(games_mutex_);
 
 		auto view = games_ | std::views::values;
-		const auto it = std::ranges::find_if(view, [name](const auto& game) { return game->get_name() == name; });
+		const auto it = std::ranges::find_if(view, [name](const auto& game)
+		{
+			return game->get_name() ==
+				name;
+		});
 
 		return (it != view.end()) ? *it : nullptr;
 	}
 
-	void database::set_user_room_id(const uint32_t user_id, const uint32_t room_id)
+	void database::set_user_room_id(const uint32_t user_id,
+									const uint32_t room_id)
 	{
 		std::unique_lock lock(users_mutex_);
 

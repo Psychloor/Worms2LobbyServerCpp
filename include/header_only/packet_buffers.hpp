@@ -44,7 +44,8 @@ namespace net
 		// Convert to shared_bytes_ptr
 		[[nodiscard]] net::shared_bytes_ptr to_shared()
 		{
-			return std::static_pointer_cast<shared_bytes>(this->shared_from_this());
+			return std::static_pointer_cast<shared_bytes>(
+				this->shared_from_this());
 		}
 
 		// Helper for view comparison
@@ -99,7 +100,10 @@ namespace net
 		// Constructor
 		constexpr packet_writer() noexcept = default;
 
-		constexpr void reserve(const std::size_t bytes) { buffer_.reserve(bytes); }
+		constexpr void reserve(const std::size_t bytes)
+		{
+			buffer_.reserve(bytes);
+		}
 
 		template <typename T> requires std::is_trivially_copyable_v<T>
 		constexpr void write(const T& value)
@@ -116,13 +120,17 @@ namespace net
 		template <typename T> requires std::is_integral_v<T>
 		constexpr void write_le(T v)
 		{
-			write(std::endian::native == std::endian::little ? v : std::byteswap(v));
+			write(std::endian::native == std::endian::little
+					  ? v
+					  : std::byteswap(v));
 		}
 
 		template <typename T> requires std::is_integral_v<T>
 		constexpr void write_be(T v)
 		{
-			write(std::endian::native == std::endian::big ? v : std::byteswap(v));
+			write(std::endian::native == std::endian::big
+					  ? v
+					  : std::byteswap(v));
 		}
 
 		void write_c_string(std::string_view str)
@@ -132,8 +140,15 @@ namespace net
 		}
 
 		// Accessors
-		[[nodiscard]] constexpr std::span<const byte> span() const noexcept { return buffer_; }
-		[[nodiscard]] constexpr size_t size() const noexcept { return buffer_.size(); }
+		[[nodiscard]] constexpr std::span<const byte> span() const noexcept
+		{
+			return buffer_;
+		}
+
+		[[nodiscard]] constexpr size_t size() const noexcept
+		{
+			return buffer_.size();
+		}
 
 		[[nodiscard]] net::shared_bytes_ptr to_shared() &&
 		{
@@ -162,7 +177,9 @@ namespace net
 	{
 	public:
 		// Constructors with deduction guides
-		constexpr explicit packet_reader(const std::span<const std::byte> data) noexcept : data_(data), consumed_(0)
+		constexpr explicit packet_reader(
+			const std::span<const std::byte> data) noexcept : data_(data),
+			consumed_(0)
 		{
 		}
 
@@ -172,7 +189,8 @@ namespace net
 		{
 			if (consumed_ + sizeof(T) > data_.size())
 			{
-				return std::unexpected(std::make_error_code(std::errc::message_size));
+				return std::unexpected(
+					std::make_error_code(std::errc::message_size));
 			}
 
 			T value;
@@ -182,13 +200,15 @@ namespace net
 		}
 
 		// Byte span reading
-		[[nodiscard]] constexpr std::expected<std::span<const byte>, std::error_code>
+		[[nodiscard]] constexpr std::expected<
+			std::span<const byte>, std::error_code>
 		// ReSharper disable once CppDFAUnreachableFunctionCall
 		read_bytes(const size_t len)
 		{
 			if (consumed_ + len > data_.size())
 			{
-				return std::unexpected(std::make_error_code(std::errc::message_size));
+				return std::unexpected(
+					std::make_error_code(std::errc::message_size));
 			}
 
 			auto view = data_.subspan(consumed_, len);
@@ -248,26 +268,33 @@ namespace net
 		}
 
 		// Not null-terminated
-		[[nodiscard]] constexpr std::expected<std::string_view, std::error_code> read_string(const size_t max_len)
+		[[nodiscard]] constexpr std::expected<std::string_view, std::error_code>
+		read_string(const size_t max_len)
 		{
 			if (auto bytes = read_bytes(max_len))
 			{
-				if (const auto null_pos = std::ranges::find(*bytes, byte{0}); null_pos != bytes->end())
+				if (const auto null_pos = std::ranges::find(*bytes, byte{0});
+					null_pos != bytes->end())
 				{
 					return std::string_view{
 						reinterpret_cast<const char*>(bytes->data()),
-						static_cast<unsigned long long>(std::distance(bytes->begin(), null_pos))
+						static_cast<unsigned long long>(std::distance(
+							bytes->begin(), null_pos))
 					};
 				}
 			}
-			return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+			return std::unexpected(
+				std::make_error_code(std::errc::invalid_argument));
 		}
 
-		[[nodiscard]] constexpr std::expected<std::string_view, std::error_code> read_fixed_string(const size_t size)
+		[[nodiscard]] constexpr std::expected<std::string_view, std::error_code>
+		read_fixed_string(const size_t size)
 		{
 			const auto bytes = read_bytes(size);
 			if (!bytes) return std::unexpected(bytes.error());
-			return std::string_view{reinterpret_cast<const char*>(bytes->data()), bytes->size()};
+			return std::string_view{
+				reinterpret_cast<const char*>(bytes->data()), bytes->size()
+			};
 		}
 
 
@@ -279,9 +306,12 @@ namespace net
 		std::expected<T, std::error_code> view_struct()
 		{
 			if (!can_read(sizeof(T)))
-				return std::unexpected(std::make_error_code(std::errc::message_size));
+				return std::unexpected(
+					std::make_error_code(std::errc::message_size));
 			// bit_cast performs compile‑time memcpy, no alignment requirement
-			T v = std::bit_cast<T>(*reinterpret_cast<const std::array<byte, sizeof(T)>*>(data_.begin() + consumed_));
+			T v = std::bit_cast<T>(
+				*reinterpret_cast<const std::array<byte, sizeof(T)>*>(data_.
+					begin() + consumed_));
 			consumed_ += sizeof(T);
 			return v;
 		}
@@ -294,7 +324,9 @@ namespace net
 
 		[[nodiscard]] constexpr std::span<const byte> remaining() const noexcept
 		{
-			return std::span<const byte>{data_.begin() + consumed_, data_.size_bytes() - consumed_};
+			return std::span<const byte>{
+				data_.begin() + consumed_, data_.size_bytes() - consumed_
+			};
 		}
 
 		[[nodiscard]] constexpr size_t bytes_read() const noexcept

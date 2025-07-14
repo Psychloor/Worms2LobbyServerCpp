@@ -6,8 +6,11 @@
 
 #include "user_session.hpp"
 
-worms_server::user::user(const std::shared_ptr<user_session>& session, const uint32_t id, const std::string_view name,
-						 const nation nation) : id_(id), name_(name), session_info_(nation, session_type::user),
+worms_server::user::user(const std::shared_ptr<user_session>& session,
+						 const uint32_t id, const std::string_view name,
+						 const nation nation) : id_(id), name_(name),
+												session_info_(
+													nation, session_type::user),
 												session_(session)
 {
 }

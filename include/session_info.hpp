@@ -49,7 +49,8 @@ namespace worms_server
 		session_info() = default;
 
 		session_info(const worms_server::nation nation, const session_type type,
-					 const session_access access = session_access::public_access)
+					 const session_access access =
+						 session_access::public_access)
 		{
 			this->nation = nation;
 			this->type = type;
@@ -65,10 +66,12 @@ namespace worms_server
 			padding.fill(static_cast<net::byte>(0));
 		}
 
-		static std::expected<std::optional<session_info>, std::string> read_from(net::packet_reader& reader);
+		static std::expected<std::optional<session_info>, std::string>
+		read_from(net::packet_reader& reader);
 	};
 
-	static void write_session_info(net::packet_writer& writer, const session_info& info)
+	static void write_session_info(net::packet_writer& writer,
+								   const session_info& info)
 	{
 		writer.write_le(info.crc1);
 		writer.write_le(info.crc2);
@@ -84,20 +87,23 @@ namespace worms_server
 
 	static constexpr bool verify_session_info(const session_info& info)
 	{
-		if (info.crc1 != 0x17171717 || info.crc2 != boost::endian::little_to_native(0x02010101))
+		if (info.crc1 != 0x17171717 || info.crc2 !=
+			boost::endian::little_to_native(0x02010101))
 		{
-			std::cerr << "CRC1: " << info.crc1 << " CRC2: " << info.crc2 << std::endl;
+			std::cerr << "CRC1: " << info.crc1 << " CRC2: " << info.crc2 <<
+				std::endl;
 			return false;
 		}
 
 		if (info.always_one != 1 || info.always_zero != 0)
 		{
-			std::cerr << "Always one: " << info.always_one << " Always zero: " << info.always_zero << std::endl;
+			std::cerr << "Always one: " << info.always_one << " Always zero: "
+				<< info.always_zero << std::endl;
 			return false;
 		}
 
 		const auto result = std::ranges::find_if_not(info.padding,
-													 [](const auto& value) { return value == net::byte{0}; });
+			[](const auto& value) { return value == net::byte{0}; });
 
 		if (result != info.padding.end())
 		{
@@ -117,15 +123,19 @@ namespace worms_server
 
 		info.crc1 = reader.read_le<uint32_t>().value();
 		info.crc2 = reader.read_le<uint32_t>().value();
-		info.nation = static_cast<worms_server::nation>(reader.read_le<uint8_t>().value());
+		info.nation = static_cast<worms_server::nation>(reader.read_le<
+			uint8_t>().value());
 		info.game_version = reader.read_le<uint8_t>().value();
 		info.game_release = reader.read_le<uint8_t>().value();
-		info.type = static_cast<session_type>(reader.read_le<uint8_t>().value());
-		info.access = static_cast<session_access>(reader.read_le<uint8_t>().value());
+		info.type = static_cast<session_type>(reader.read_le<uint8_t>().
+			value());
+		info.access = static_cast<session_access>(reader.read_le<uint8_t>().
+			value());
 		info.always_one = reader.read_le<uint8_t>().value();
 		info.always_zero = reader.read_le<uint8_t>().value();
 
-		const auto padding_bytes = reader.read_bytes(session_info::padding_size).value();
+		const auto padding_bytes = reader.read_bytes(session_info::padding_size)
+										 .value();
 		std::ranges::copy(padding_bytes, info.padding.begin());
 
 		if (!verify_session_info(info))

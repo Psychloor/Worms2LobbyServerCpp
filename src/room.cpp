@@ -5,12 +5,14 @@
 #include "room.hpp"
 
 #include <utility>
+
 namespace worms_server
 {
-	room::room(const uint32_t id, const std::string_view name, const nation nation,
-							 boost::asio::ip::address_v4 address) : id_(id), name_(name),
-																	session_info_{nation, session_type::room},
-																	address_(std::move(address))
+	room::room(const uint32_t id, const std::string_view name,
+			   const nation nation,
+			   boost::asio::ip::address_v4 address) : id_(id), name_(name),
+		session_info_{nation, session_type::room},
+		address_(std::move(address))
 	{
 	}
 

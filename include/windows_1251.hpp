@@ -33,7 +33,8 @@ namespace worms_server
         static std::string decode(const std::string& win1251_input)
         {
             std::string result;
-            result.reserve(win1251_input.length() * 2); // UTF-8 might need more space
+            result.reserve(win1251_input.length() * 2);
+            // UTF-8 might need more space
 
             for (const unsigned char c : win1251_input)
             {
@@ -45,7 +46,8 @@ namespace worms_server
         }
 
     private:
-        static size_t utf8_to_codepoint(const std::string& utf8_str, const size_t pos, uint32_t& codepoint)
+        static size_t utf8_to_codepoint(const std::string& utf8_str,
+                                        const size_t pos, uint32_t& codepoint)
         {
             unsigned char first = utf8_str[pos];
 
@@ -79,20 +81,24 @@ namespace worms_server
             }
             else if (codepoint <= 0x7FF)
             {
-                str.push_back(static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
+                str.push_back(
+                    static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
                 str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
             }
             else if (codepoint <= 0xFFFF)
             {
-                str.push_back(static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
-                str.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+                str.push_back(
+                    static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
+                str.push_back(
+                    static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
                 str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
             }
         }
 
         static uint32_t windows1251_to_unicode(const unsigned char win1251_char)
         {
-            constexpr static const std::array<uint32_t, 128> conversion_table = {
+            constexpr static const std::array<uint32_t, 128> conversion_table =
+            {
                 0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021,
                 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
                 0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
@@ -138,7 +144,8 @@ namespace worms_server
             case 0x0401: return 0xA8; // Ё
             case 0x0451: return 0xB8; // ё
             // Add more special cases as needed
-            default: return '?'; // Return question mark for unsupported characters
+            default: return '?';
+                // Return question mark for unsupported characters
             }
         }
     };

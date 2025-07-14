@@ -23,7 +23,8 @@ namespace worms_server
 	class user
 	{
 	public:
-		explicit user(const std::shared_ptr<user_session>& session, uint32_t id, std::string_view name, nation nation);
+		explicit user(const std::shared_ptr<user_session>& session, uint32_t id,
+					  std::string_view name, nation nation);
 
 		~user()
 		{

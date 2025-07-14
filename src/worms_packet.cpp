@@ -14,15 +14,17 @@
 
 namespace worms_server
 {
-	net::shared_bytes_ptr worms_packet::freeze(const packet_code code, packet_fields fields)
+	net::shared_bytes_ptr worms_packet::freeze(const packet_code code,
+											   packet_fields fields)
 	{
 		net::packet_writer writer;
 		worms_packet{code, std::move(fields)}.write_to(writer);
 		return std::move(writer).to_shared();
 	}
 
-	worms_packet::worms_packet(const packet_code code, packet_fields fields) : code_(code), flags_(0),
-																			   fields_(std::move(fields))
+	worms_packet::worms_packet(const packet_code code, packet_fields fields) :
+		code_(code), flags_(0),
+		fields_(std::move(fields))
 	{
 	}
 
@@ -37,7 +39,8 @@ namespace worms_server
 		const uint32_t code_value = reader.read_le<uint32_t>().value();
 		if (!packet_code_exists(code_value))
 		{
-			return std::unexpected(std::format("Unknown packet code: {}", code_value));
+			return std::unexpected(
+				std::format("Unknown packet code: {}", code_value));
 		}
 
 		const auto code = static_cast<packet_code>(code_value);
@@ -128,11 +131,13 @@ namespace worms_server
 			}
 			else
 			{
-				const auto bytes = reader.read_bytes(packet->data_length()).value();
+				const auto bytes = reader.read_bytes(packet->data_length()).
+										  value();
 				// Ensure we have at least one byte for null terminator
 				if (bytes.empty() || bytes.back() != std::byte{0})
 				{
-					return std::unexpected("Invalid data: missing null terminator");
+					return std::unexpected(
+						"Invalid data: missing null terminator");
 				}
 
 				const auto encoded = std::string(
@@ -143,7 +148,8 @@ namespace worms_server
 				// Add size check before decoding
 				if (encoded.length() > max_data_length)
 				{
-					return std::unexpected("String too long: encoded data exceeds maximum length");
+					return std::unexpected(
+						"String too long: encoded data exceeds maximum length");
 				}
 
 				const std::string decoded = windows_1251::decode(encoded);
@@ -151,7 +157,8 @@ namespace worms_server
 				// Add size check after decoding
 				if (decoded.length() > max_data_length)
 				{
-					return std::unexpected("String too long: decoded data exceeds maximum length");
+					return std::unexpected(
+						"String too long: decoded data exceeds maximum length");
 				}
 
 				packet->fields_.data = decoded;
@@ -173,10 +180,12 @@ namespace worms_server
 			{
 				return std::nullopt;
 			}
-			const auto name_encoded_bytes = reader.read_bytes(max_name_length).value();
+			const auto name_encoded_bytes = reader.read_bytes(max_name_length).
+												   value();
 
 			// Find the first null terminator or use the whole buffer
-			const auto terminator_pos = std::ranges::find(name_encoded_bytes, static_cast<std::byte>(0));
+			const auto terminator_pos = std::ranges::find(
+				name_encoded_bytes, static_cast<std::byte>(0));
 			if (terminator_pos == name_encoded_bytes.end())
 			{
 				return std::unexpected("Invalid name: missing null terminator");
@@ -189,14 +198,16 @@ namespace worms_server
 
 			if (name_encoded.length() > max_name_length)
 			{
-				return std::unexpected("Name too long: encoded name exceeds maximum length");
+				return std::unexpected(
+					"Name too long: encoded name exceeds maximum length");
 			}
 
 			const auto name_decoded = windows_1251::decode(name_encoded);
 
 			if (name_decoded.length() > max_name_length)
 			{
-				return std::unexpected("Name too long: decoded name exceeds maximum length");
+				return std::unexpected(
+					"Name too long: decoded name exceeds maximum length");
 			}
 
 			packet->fields_.name = name_decoded;
@@ -283,7 +294,9 @@ namespace worms_server
 		if (fields_.name.has_value())
 		{
 			const auto encoded = windows_1251::encode(fields_.name.value());
-			std::array<net::byte, max_name_length> buffer{static_cast<net::byte>(0)};
+			std::array<net::byte, max_name_length> buffer{
+				static_cast<net::byte>(0)
+			};
 			const auto length = std::min(encoded.size(), max_name_length);
 
 			std::copy_n(

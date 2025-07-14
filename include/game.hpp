@@ -15,8 +15,10 @@ namespace worms_server
 	class game
 	{
 	public:
-		explicit game(uint32_t id, std::string_view name, nation nation, uint32_t room_id,
-					  boost::asio::ip::address_v4 address, session_access access);
+		explicit game(uint32_t id, std::string_view name, nation nation,
+					  uint32_t room_id,
+					  boost::asio::ip::address_v4 address,
+					  session_access access);
 
 		~game()
 		{
