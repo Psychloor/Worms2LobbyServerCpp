@@ -11,6 +11,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "framed_packet_reader.hpp"
 #include "packet_handler.hpp"
 #include "server.hpp"
 
@@ -153,7 +154,8 @@ namespace worms_server
 
 		// Clear any pending packets
 		std::vector<std::byte> pkt;
-		while (_packets.try_dequeue(pkt)) {
+		while (_packets.try_dequeue(pkt))
+		{
 			// Drain the queue
 		}
 
@@ -174,6 +176,8 @@ namespace worms_server
 			co_return;
 		}
 
+		spdlog::info("User {} logged in", _user->get_name());
+
 		co_await handle_session();
 
 		co_await disconnect_user(_user);
@@ -193,10 +197,10 @@ namespace worms_server
 
 	awaitable<void> user_session::writer()
 	{
+		using namespace std::chrono_literals;
 		try
 		{
 			std::vector<std::byte> pkt;
-
 			while (_socket.is_open() && !_is_shutting_down)
 			{
 				// Flush everything currently queued
@@ -205,22 +209,15 @@ namespace worms_server
 					boost::system::error_code ec;
 					co_await async_write(_socket, buffer(pkt),
 										 redirect_error(use_awaitable, ec));
-
-					if (ec) // closed, reset, etc.
-						co_return;
+					if (ec) co_return; // socket closed/reset
 				}
 
-				// Re-arm the timer for a small idle delay
-				_timer.expires_after(std::chrono::milliseconds{10});
-
+				_timer.expires_after(10ms);
 				boost::system::error_code ec;
 				co_await _timer.async_wait(redirect_error(use_awaitable, ec));
 
-				if (ec == error::operation_aborted)
-					continue; // canceled because a new packet arrived
-
-				if (ec) // timer destroyed or io_context stopped
-					co_return;
+				if (ec == error::operation_aborted) continue; // packet arrived
+				if (ec) co_return; // io_context stopped
 			}
 		}
 		catch (const std::exception& e)
@@ -335,6 +332,7 @@ namespace worms_server
 		{
 			std::vector<std::byte> incoming(1024 * 2);
 			const auto database = database::get_instance();
+			net::framed_packet_reader reader;
 
 			while (_socket.is_open())
 			{
@@ -346,15 +344,7 @@ namespace worms_server
 						redirect_error(use_awaitable, ec)
 					);
 
-					// Check for zero reads which might indicate a connection issue
-					if (read == 0)
-					{
-						spdlog::info("Client {} disconnected (zero bytes read)", _user->get_name());
-						break;
-					}
-
-					// Client disconnected cleanly
-					if (ec == error::eof)
+					if (read == 0 || ec == error::eof)
 					{
 						spdlog::info("Client {} disconnected", _user->get_name());
 						break;
@@ -365,42 +355,29 @@ namespace worms_server
 						break;
 					}
 
-					auto packet_reader = net::packet_reader(incoming);
-					const auto packet = worms_packet::read_from(packet_reader);
-					if (!packet.has_value())
+					reader.append(incoming.data(), read);
+					while (true)
 					{
-						spdlog::error("Error reading packet: incomplete data");
-						continue; // Changed from break to continue to be more forgiving
-					}
+						const auto result = reader.try_read_packet();
+						if (!result.has_value())
+						{
+							// Invalid data
+							spdlog::error("Parse error: {}", result.error());
+							co_return;
+						}
 
-					const auto& optional_packet = packet.value();
-					if (!optional_packet)
-					{
-						// Needs more data
-						continue;
-					}
+						const auto& maybe_packet = result.value();
+						if (!maybe_packet)
+						{
+							// Needs more data
+							break;
+						}
 
-					// Add null check for a database
-					if (!database)
-					{
-						spdlog::error("Database instance is null");
-						break;
-					}
-
-					if (const auto consumed = packet_reader.bytes_read();
-						packet_reader.bytes_read() > 0 && consumed < incoming.size())
-					{
-						std::copy(
-							incoming.begin() + static_cast<ptrdiff_t>(consumed),
-							incoming.end(),
-							incoming.begin()
-						);
-					}
-
-					if (!co_await packet_handler::get_instance()->handle_packet(_user, database, *optional_packet))
-					{
-						spdlog::warn("Packet handler failed or returned false");
-						break;
+						if (!co_await packet_handler::get_instance()->handle_packet(_user, database, *maybe_packet))
+						{
+							spdlog::warn("Packet handler failed or returned false");
+							co_return;
+						}
 					}
 				}
 				catch (const std::exception& e)
@@ -416,7 +393,7 @@ namespace worms_server
 			spdlog::error("Fatal error in User Session: {}", e.what());
 		}
 
-		// Ensure socket is closed
+		// Ensure the socket is closed
 		try
 		{
 			if (_socket.is_open())

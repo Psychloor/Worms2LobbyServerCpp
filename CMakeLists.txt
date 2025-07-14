@@ -10,7 +10,7 @@ add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
 set(LIBHEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/resettable_timeout.hpp
-
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/framed_packet_reader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/concurrentqueue.hpp
 )
 
@@ -39,7 +39,6 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/user_session.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/packet_handler.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
-
 )
 
 find_package(Boost REQUIRED)
