@@ -697,37 +697,55 @@ namespace moodycamel
 		template <typename T>
 		struct static_is_lock_free_num
 		{
-			enum { value = 0 };
+			enum
+			{
+				value = 0
+			};
 		};
 
 		template <>
 		struct static_is_lock_free_num<signed char>
 		{
-			enum { value = ATOMIC_CHAR_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_CHAR_LOCK_FREE
+			};
 		};
 
 		template <>
 		struct static_is_lock_free_num<short>
 		{
-			enum { value = ATOMIC_SHORT_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_SHORT_LOCK_FREE
+			};
 		};
 
 		template <>
 		struct static_is_lock_free_num<int>
 		{
-			enum { value = ATOMIC_INT_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_INT_LOCK_FREE
+			};
 		};
 
 		template <>
 		struct static_is_lock_free_num<long>
 		{
-			enum { value = ATOMIC_LONG_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_LONG_LOCK_FREE
+			};
 		};
 
 		template <>
 		struct static_is_lock_free_num<long long>
 		{
-			enum { value = ATOMIC_LLONG_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_LLONG_LOCK_FREE
+			};
 		};
 
 		template <typename T>
@@ -738,13 +756,19 @@ namespace moodycamel
 		template <>
 		struct static_is_lock_free<bool>
 		{
-			enum { value = ATOMIC_BOOL_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_BOOL_LOCK_FREE
+			};
 		};
 
 		template <typename U>
 		struct static_is_lock_free<U*>
 		{
-			enum { value = ATOMIC_POINTER_LOCK_FREE };
+			enum
+			{
+				value = ATOMIC_POINTER_LOCK_FREE
+			};
 		};
 	}
 
@@ -1531,7 +1555,11 @@ namespace moodycamel
 		friend struct ImplicitProducer;
 		friend class ConcurrentQueueTests;
 
-		enum AllocationMode { CanAlloc, CannotAlloc };
+		enum AllocationMode
+		{
+			CanAlloc,
+			CannotAlloc
+		};
 
 
 		///////////////////////////////
@@ -1763,7 +1791,11 @@ namespace moodycamel
 		// Block
 		///////////////////////////
 
-		enum InnerQueueContext { implicit_context = 0, explicit_context = 1 };
+		enum InnerQueueContext
+		{
+			implicit_context = 0,
+			explicit_context = 1
+		};
 
 		struct Block
 		{
