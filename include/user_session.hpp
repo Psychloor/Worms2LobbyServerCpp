@@ -5,10 +5,10 @@
 #ifndef USER_SESSION_HPP
 #define USER_SESSION_HPP
 
-#include <span>
 #include <boost/asio.hpp>
 
 #include "concurrentqueue.hpp"
+#include "packet_buffers.hpp"
 
 namespace worms_server
 {
@@ -27,7 +27,7 @@ namespace worms_server
 
 		awaitable<void> run();
 
-		void send_packet(const std::span<const std::byte>& packet);
+		void send_packet(const net::shared_bytes& packet);
 		ip::address_v4 address_v4() const;
 
 	private:
@@ -42,7 +42,7 @@ namespace worms_server
 		std::shared_ptr<user> _user;
 
 		steady_timer _timer;
-		moodycamel::ConcurrentQueue<std::vector<std::byte>> _packets;
+		moodycamel::ConcurrentQueue<net::shared_bytes> _packets;
 	};
 }
 

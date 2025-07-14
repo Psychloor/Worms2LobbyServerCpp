@@ -13,7 +13,7 @@
 #include "worms_packet.hpp"
 #include "spdlog/spdlog.h"
 
-#include "utilities.hpp"
+#include "boost/algorithm/string.hpp"
 
 namespace worms_server
 {
@@ -39,15 +39,10 @@ namespace worms_server
 			spdlog::info("Room {} closed", room_id);
 		}
 
-		net::packet_writer writer;
-		worms_packet(packet_code::leave, {.value2 = room_id, .value10 = left_id}).write_to(writer);
-		const auto room_leave_packet_bytes = writer.span();
-
-		writer.clear();
-		worms_packet(packet_code::close, {.value10 = room_id}).write_to(writer);
-		const auto room_close_packet_bytes = writer.span();
-		writer.clear();
-
+		const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {
+																	  .value2 = room_id, .value10 = left_id
+																  });
+		const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = room_id});
 		for (const auto& user : users)
 		{
 			if (user->get_id() == left_id)
@@ -83,40 +78,36 @@ namespace worms_server
 		}
 
 		const auto& target_id = packet->fields().value3.value();
+		const auto client_room_id = client_user->get_room_id();
 		const auto& message = packet->fields().data.value();
 		const auto client_id = client_user->get_id();
 
 		if (message.starts_with(std::format("GRP:[ {} ]  ", client_user->get_name())))
 		{
 			// Check if the user can access the room.
-			if (client_user->get_room_id() == target_id)
+			if (client_room_id == target_id)
 			{
-				net::packet_writer writer;
-
 				// Notify all users of the room.
-				worms_packet(packet_code::chat_room, {.value0 = client_id, .value3 = target_id, .data = message}).
-					write_to(writer);
-				const auto packet_bytes = writer.span();
+				const auto packet_bytes = worms_packet::freeze(packet_code::chat_room, {
+																   .value0 = client_id, .value3 = client_room_id,
+																   .data = message
+															   });
 
 				for (const auto& user : database->get_users())
 				{
-					if (user->get_room_id() == target_id && user->get_id() != client_id)
+					if (user->get_room_id() == client_room_id && user->get_id() != client_id)
 					{
 						user->send_packet(packet_bytes);
 					}
 				}
 
 				// Notify sender
-				writer.clear();
-				worms_packet(packet_code::chat_room_reply, {.error = 0}).write_to(writer);
-				client_user->send_packet(writer.span());
+				client_user->send_packet(worms_packet::freeze(packet_code::chat_room_reply, {.error = 0}));
 				co_return true;
 			}
 
 			// Notify sender
-			net::packet_writer writer;
-			worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
-			client_user->send_packet(writer.span());
+			client_user->send_packet(worms_packet::freeze(packet_code::chat_room_reply, {.error = 1}));
 			co_return true;
 		}
 
@@ -125,22 +116,17 @@ namespace worms_server
 			const auto& target_user = database->get_user(target_id);
 			if (target_user == nullptr)
 			{
-				net::packet_writer writer;
-				worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
-				client_user->send_packet(writer.span());
+				client_user->send_packet(worms_packet::freeze(packet_code::chat_room_reply, {.error = 1}));
 				co_return true;
 			}
 
 			// Notify Target
-			net::packet_writer writer;
-			worms_packet(packet_code::chat_room, {.value0 = client_id, .value3 = target_id, .data = message}).
-				write_to(writer);
-			target_user->send_packet(writer.span());
-			writer.clear();
+			target_user->send_packet(worms_packet::freeze(packet_code::chat_room, {
+															  .value0 = client_id, .value3 = target_id, .data = message
+														  }));
 
 			// Notify Sender
-			worms_packet(packet_code::chat_room_reply, {.error = 1}).write_to(writer);
-			client_user->send_packet(writer.span());
+			client_user->send_packet(worms_packet::freeze(packet_code::chat_room_reply, {.error = 1}));
 			co_return true;
 		}
 
@@ -158,24 +144,17 @@ namespace worms_server
 		}
 
 		const auto rooms = database->get_rooms();
-		net::packet_writer writer;
 		for (const auto& room : rooms)
 		{
-			worms_packet(packet_code::list_item, {
-							 .value1 = room->get_id(), .name = std::string(room->get_name()),
-							 .data = "",
-							 .session_info = room->get_session_info()
-						 }).write_to(writer);
-
-
-			const auto packet_bytes = writer.span();
-			writer.clear();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::list_item, {
+															  .value1 = room->get_id(),
+															  .name = std::string(room->get_name()),
+															  .data = "",
+															  .session_info = room->get_session_info()
+														  }));
 		}
 
-		worms_packet(packet_code::list_end).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::get_list_end_packet());
 
 		co_return true;
 	}
@@ -193,7 +172,6 @@ namespace worms_server
 
 		const auto users = database->get_users();
 		const auto room_id = client_user->get_room_id();
-		net::packet_writer writer;
 		for (const auto& user : users)
 		{
 			if (user->get_room_id() != room_id)
@@ -201,18 +179,14 @@ namespace worms_server
 				continue;
 			}
 
-			worms_packet(packet_code::list_item, {
-							 .value1 = user->get_id(), .name = std::string(user->get_name()), .data = "",
-							 .session_info = user->get_session_info()
-						 }).write_to(writer);
-			const auto packet_bytes = writer.span();
-			writer.clear();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::list_item, {
+															  .value1 = user->get_id(),
+															  .name = std::string(user->get_name()), .data = "",
+															  .session_info = user->get_session_info()
+														  }));
 		}
 
-		worms_packet(packet_code::list_end).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::get_list_end_packet());
 
 		co_return true;
 	}
@@ -229,8 +203,6 @@ namespace worms_server
 		}
 
 		const auto games = database->get_games();
-		net::packet_writer writer;
-
 		for (const auto& game : games)
 		{
 			if (game->get_room_id() != client_user->get_room_id())
@@ -238,19 +210,15 @@ namespace worms_server
 				continue;
 			}
 
-			worms_packet(packet_code::list_item, {
-							 .value1 = game->get_id(),
-							 .name = std::string(game->get_name()), .data = game->get_address().to_string(),
-							 .session_info = game->get_session_info()
-						 }).write_to(writer);
-			const auto packet_bytes = writer.span();
-			writer.clear();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::list_item, {
+															  .value1 = game->get_id(),
+															  .name = std::string(game->get_name()),
+															  .data = game->get_address().to_string(),
+															  .session_info = game->get_session_info()
+														  }));
 		}
 
-		worms_packet(packet_code::list_end).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::get_list_end_packet());
 
 		co_return true;
 	}
@@ -272,13 +240,10 @@ namespace worms_server
 		if (std::ranges::any_of(database->get_rooms(),
 								[client_name = client_user->get_name()](const auto& room) -> bool
 								{
-									return string_equals(room->get_name(), client_name);
+									return boost::iequals(room->get_name(), client_name);
 								}))
 		{
-			net::packet_writer writer;
-			worms_packet(packet_code::create_room_reply, {.value1 = 0, .error = 1}).write_to(writer);
-			const auto packet_bytes = writer.span();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::create_room_reply, {.value1 = 0, .error = 1}));
 
 			co_return false;
 		}
@@ -290,12 +255,11 @@ namespace worms_server
 		database::get_instance()->add_room(room);
 
 
-		net::packet_writer writer;
-		worms_packet(packet_code::create_room, {
-						 .value1 = room_id, .value4 = 0, .name = std::string(room->get_name()), .data = "",
-						 .session_info = room->get_session_info()
-					 }).write_to(writer);
-		const auto room_packet_bytes = writer.span();
+		const auto room_packet_bytes = worms_packet::freeze(packet_code::create_room, {
+																.value1 = room_id, .value4 = 0,
+																.name = std::string(room->get_name()), .data = "",
+																.session_info = room->get_session_info()
+															});
 
 		// notify others
 		for (const auto& user : database->get_users())
@@ -306,10 +270,7 @@ namespace worms_server
 		}
 
 		// Send the creation room reply packet
-		writer.clear();
-		worms_packet(packet_code::create_room_reply, {.value1 = room_id, .error = 0}).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::freeze(packet_code::create_room_reply, {.value1 = room_id, .error = 0}));
 
 		co_return true;
 	}
@@ -334,22 +295,17 @@ namespace worms_server
 			client_user->set_room_id(packet->fields().value2.value());
 
 			// Notify other users about the join.
-			net::packet_writer writer;
-			worms_packet(packet_code::join, {
-							 .value2 = packet->fields().value2.value(), .value10 = client_user->get_id()
-						 }).write_to(writer);
-			const auto packet_bytes = writer.span();
+			const auto packet_bytes = worms_packet::freeze(packet_code::join, {
+															   .value2 = packet->fields().value2.value(),
+															   .value10 = client_user->get_id()
+														   });
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id()) { continue; }
 				user->send_packet(packet_bytes);
 			}
 
-			writer.clear();
-			worms_packet(packet_code::join_reply, {.error = 0}).write_to(writer);
-			const auto packet_bytes2 = writer.span();
-			client_user->send_packet(packet_bytes2);
-
+			client_user->send_packet(worms_packet::freeze(packet_code::join_reply, {.error = 0}));
 			co_return true;
 		}
 
@@ -361,30 +317,21 @@ namespace worms_server
 								}))
 		{
 			// Notify other users about the join.
-			net::packet_writer writer;
-			worms_packet(packet_code::join, {
-							 .value2 = client_user->get_room_id(), .value10 = client_user->get_id()
-						 }).write_to(writer);
-			const auto packet_bytes = writer.span();
+			const auto packet_bytes = worms_packet::freeze(packet_code::join, {
+															   .value2 = client_user->get_room_id(),
+															   .value10 = client_user->get_id()
+														   });
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id()) { continue; }
 				user->send_packet(packet_bytes);
 			}
 
-			writer.clear();
-			worms_packet(packet_code::join_reply, {.error = 0}).write_to(writer);
-			const auto packet_bytes2 = writer.span();
-			client_user->send_packet(packet_bytes2);
-
+			client_user->send_packet(worms_packet::freeze(packet_code::join_reply, {.error = 0}));
 			co_return true;
 		}
 
-		net::packet_writer writer;
-		worms_packet(packet_code::join_reply, {.error = 1}).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
-
+		client_user->send_packet(worms_packet::freeze(packet_code::join_reply, {.error = 1}));
 		co_return true;
 	}
 
@@ -405,19 +352,13 @@ namespace worms_server
 			client_user->set_room_id(0);
 
 			// Reply to leaver.
-			net::packet_writer writer;
-			worms_packet(packet_code::leave_reply, {.error = 0}).write_to(writer);
-			const auto packet_bytes = writer.span();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::leave_reply, {.error = 0}));
 
 			co_return true;
 		}
 
 		// Reply to leaver. (failed to find)
-		net::packet_writer writer;
-		worms_packet(packet_code::leave_reply, {.error = 1}).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::freeze(packet_code::leave_reply, {.error = 1}));
 
 		co_return true;
 	}
@@ -434,10 +375,7 @@ namespace worms_server
 
 		// Never sent for games, users disconnect if leaving a game.
 		// Reply success to the client, the server decides when to actually close rooms.
-		net::packet_writer writer;
-		worms_packet(packet_code::close_reply, {.error = 0}).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
+		client_user->send_packet(worms_packet::freeze(packet_code::close_reply, {.error = 0}));
 
 		co_return true;
 	}
@@ -481,43 +419,33 @@ namespace worms_server
 			database->add_game(game);
 
 			// Notify other users about the new game, even those in other rooms.
-			net::packet_writer writer;
-			worms_packet(packet_code::create_game, {
-							 .value1 = game_id,
-							 .value2 = game->get_room_id(),
-							 .value4 = 0x800,
-							 .name = std::string(game->get_name()),
-							 .data = game->get_address().to_string(),
-							 .session_info = game->get_session_info()
-						 }).write_to(writer);
-
-			const auto packet_bytes = writer.span();
+			const auto packet_bytes = worms_packet::freeze(packet_code::create_game, {
+															   .value1 = game_id,
+															   .value2 = game->get_room_id(),
+															   .value4 = 0x800,
+															   .name = std::string(game->get_name()),
+															   .data = game->get_address().to_string(),
+															   .session_info = game->get_session_info()
+														   });
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id()) { continue; }
 				user->send_packet(packet_bytes);
 			}
 
-			// Send reply to host
-			writer.clear();
-			worms_packet(packet_code::create_game_reply, {.value1 = game_id, .error = 0}).write_to(writer);
-			const auto packet_bytes2 = writer.span();
-			client_user->send_packet(packet_bytes2);
+			// Send reply to host;
+			client_user->send_packet(
+				worms_packet::freeze(packet_code::create_game_reply, {.value1 = game_id, .error = 0}));
 		}
 
-		net::packet_writer writer;
-		worms_packet(packet_code::create_game_reply, {.value1 = 0, .error = 2}).write_to(writer);
-		const auto packet_bytes = writer.span();
-		client_user->send_packet(packet_bytes);
 
-		writer.clear();
-		worms_packet(packet_code::chat_room, {
-						 .value0 = client_user->get_id(), .value3 = client_user->get_room_id(),
-						 .data =
-						 "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
-					 }).write_to(writer);
-		const auto packet_bytes2 = writer.span();
-		client_user->send_packet(packet_bytes2);
+		client_user->send_packet(worms_packet::freeze(packet_code::create_game_reply, {.value1 = 0, .error = 2}));
+		client_user->send_packet(worms_packet::freeze(packet_code::chat_room, {
+														  .value0 = client_user->get_id(),
+														  .value3 = client_user->get_room_id(),
+														  .data =
+														  "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
+													  }));
 
 		co_return true;
 	}
@@ -544,18 +472,12 @@ namespace worms_server
 
 		if (it == games.end())
 		{
-			net::packet_writer writer;
-			worms_packet(packet_code::connect_game_reply, {.data = "", .error = 1}).write_to(writer);
-			const auto packet_bytes = writer.span();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::connect_game_reply, {.data = "", .error = 1}));
 		}
 		else
 		{
-			net::packet_writer writer;
-			worms_packet(packet_code::connect_game_reply, {.data = (*it)->get_address().to_string(), .error = 0}).
-				write_to(writer);
-			const auto packet_bytes = writer.span();
-			client_user->send_packet(packet_bytes);
+			client_user->send_packet(worms_packet::freeze(packet_code::connect_game_reply,
+														  {.data = (*it)->get_address().to_string(), .error = 0}));
 		}
 
 		co_return true;

@@ -1,14 +1,11 @@
-﻿//
-// Created by blomq on 2025-06-24.
-//
-
-#ifndef WORMS_PACKET_HPP
+﻿#ifndef WORMS_PACKET_HPP
 #define WORMS_PACKET_HPP
 
 #include <string>
 #include <optional>
 #include <cstdint>
 
+#include "packet_code.hpp"
 #include "packet_flags.hpp"
 #include "session_info.hpp"
 #include "header_only/packet_buffers.hpp"
@@ -36,12 +33,13 @@ namespace worms_server
 		static constexpr size_t max_data_length = 0x200;
 		static constexpr size_t max_name_length = 20;
 
+		static net::shared_bytes freeze(packet_code code, packet_fields fields = {});
+
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
 		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_packet>>, std::string>
 		read_from(
 			net::packet_reader& reader);
-		void write_to(net::packet_writer& writer) const;
 
 		[[nodiscard]] packet_code code() const;
 		[[nodiscard]] size_t data_length() const;
@@ -59,7 +57,8 @@ namespace worms_server
 			if (self._fields.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
 			if (self._fields.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
 			if (self._fields.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
-			if (self._fields.data_length || self._fields.data) flags |= static_cast<uint32_t>(packet_flags::data_length);
+			if (self._fields.data_length || self._fields.data) flags |= static_cast<uint32_t>(
+				packet_flags::data_length);
 			if (self._fields.data) flags |= static_cast<uint32_t>(packet_flags::data);
 			if (self._fields.error) flags |= static_cast<uint32_t>(packet_flags::error);
 			if (self._fields.name) flags |= static_cast<uint32_t>(packet_flags::name);
@@ -67,12 +66,18 @@ namespace worms_server
 			return flags;
 		}
 
+		static const net::shared_bytes& get_list_end_packet()
+		{
+			static const auto packet = worms_packet::freeze(packet_code::list_end);
+			return packet;
+		}
+
 	private:
+		void write_to(net::packet_writer& writer) const;
 		packet_code _code;
 		uint32_t _flags;
 		packet_fields _fields;
 	};
-
 }
 
 

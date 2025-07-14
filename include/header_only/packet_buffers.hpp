@@ -28,6 +28,16 @@ namespace net
 	using byte = std::byte;
 
 
+	struct bytes : public std::enable_shared_from_this<bytes>
+	{
+		explicit bytes(const std::vector<byte>& data) : data(data) {}
+		explicit bytes(std::vector<byte>&& data) : data(std::move(data)) {}
+
+		std::vector<byte> data;
+	};
+
+	using shared_bytes = std::shared_ptr<bytes>;
+
 	// -----------------------------------------------------------
 	// PacketWriter – append‑only binary buffer for outgoing packets.
 	// -----------------------------------------------------------
@@ -72,6 +82,13 @@ namespace net
 		// Accessors
 		[[nodiscard]] constexpr std::span<const byte> span() const noexcept { return _buffer; }
 		[[nodiscard]] constexpr size_t size() const noexcept { return _buffer.size(); }
+
+		[[nodiscard]] shared_bytes freeze() const
+		{
+			return std::make_shared<bytes>(std::move(_buffer));
+		}
+
+
 		constexpr void clear() noexcept { _buffer.clear(); }
 
 	private:

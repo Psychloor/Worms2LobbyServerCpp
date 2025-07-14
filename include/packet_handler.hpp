@@ -24,8 +24,8 @@ namespace worms_server
 	public:
 		static std::shared_ptr<packet_handler> get_instance();
 
-		awaitable<bool> handle_packet(const std::shared_ptr<user>& client_user, const std::shared_ptr<database>& database,
-									  const std::shared_ptr<worms_packet>& packet);
+		static awaitable<bool> handle_packet(const std::shared_ptr<user>& client_user, const std::shared_ptr<database>& database,
+											 const std::shared_ptr<worms_packet>& packet);
 	};
 }
 

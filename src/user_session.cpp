@@ -1,5 +1,7 @@
 ﻿#include "user_session.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "database.hpp"
 #include "packet_code.hpp"
 #include "user.hpp"
@@ -12,7 +14,6 @@
 #include "framed_packet_reader.hpp"
 #include "packet_handler.hpp"
 #include "server.hpp"
-#include "utilities.hpp"
 
 namespace worms_server
 {
@@ -39,14 +40,8 @@ namespace worms_server
 			database->remove_room(room_id);
 		}
 
-		net::packet_writer writer;
-		worms_packet(packet_code::leave, {.value2 = room_id, .value10 = left_id}).write_to(writer);
-		const auto room_leave_packet_bytes = writer.span();
-
-		writer.clear();
-		worms_packet(packet_code::close, {.value10 = room_id}).write_to(writer);
-		const auto room_close_packet_bytes = writer.span();
-		writer.clear();
+		const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {.value2 = room_id, .value10 = left_id});
+		const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = room_id});
 
 		for (const auto& user : users)
 		{
@@ -98,18 +93,11 @@ namespace worms_server
 
 			database->remove_game(left_id);
 
-			net::packet_writer writer;
-
-			worms_packet(packet_code::leave, {.value2 = game->get_id(), .value10 = client_user->get_id()}).
-				write_to(writer);
-			const auto room_leave_packet_bytes = writer.span();
-			writer.clear();
-
-			worms_packet(packet_code::close, {.value10 = game->get_id()}).write_to(writer);
-			const auto room_close_packet_bytes = writer.span();
-			writer.clear();
-
-
+			const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {
+																  .value2 = game->get_id(),
+																  .value10 = client_user->get_id()
+															  });
+			const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = game->get_id()});
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id())
@@ -126,9 +114,7 @@ namespace worms_server
 		co_await leave_room(database->get_room(room_id), left_id);
 
 		// Notify other users we've disconnected
-		net::packet_writer writer;
-		worms_packet(packet_code::disconnect_user, {.value10 = client_user->get_id()}).write_to(writer);
-		const auto packet_bytes = writer.span();
+		const auto packet_bytes = worms_packet::freeze(packet_code::disconnect_user, {.value10 = client_user->get_id()});
 		for (const auto& user : database->get_users())
 		{
 			user->send_packet(packet_bytes);
@@ -151,8 +137,8 @@ namespace worms_server
 		server::connection_count.fetch_sub(1, std::memory_order_relaxed);
 
 		// Clear any pending packets
-		std::vector<std::byte> pkt;
-		while (_packets.try_dequeue(pkt))
+		net::shared_bytes bytes;
+		while (_packets.try_dequeue(bytes))
 		{
 			// Drain the queue
 		}
@@ -182,10 +168,9 @@ namespace worms_server
 		co_return;
 	}
 
-	void user_session::send_packet(const std::span<const std::byte>& packet)
+	void user_session::send_packet(const std::shared_ptr<net::bytes>& packet)
 	{
-		_packets.enqueue({packet.begin(), packet.end()});
-		_timer.cancel();
+		_packets.enqueue(packet);
 	}
 
 	ip::address_v4 user_session::address_v4() const
@@ -198,14 +183,14 @@ namespace worms_server
 		using namespace std::chrono_literals;
 		try
 		{
-			std::vector<std::byte> pkt;
+			net::shared_bytes packet;
 			while (_socket.is_open() && !_is_shutting_down)
 			{
 				// Flush everything currently queued
-				while (_packets.try_dequeue(pkt))
+				while (_packets.try_dequeue(packet))
 				{
 					boost::system::error_code ec;
-					co_await async_write(_socket, buffer(pkt),
+					co_await async_write(_socket, buffer(packet->data),
 										 redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
@@ -279,13 +264,12 @@ namespace worms_server
 			auto current_users = database->get_users();
 			const auto found_user = std::ranges::find_if(current_users, [&](const auto& user)
 			{
-				return string_equals(user->get_name(), username);
+				return boost::iequals(user->get_name(), username);
 			});
 			if (found_user != current_users.end())
 			{
-				auto writer = net::packet_writer();
-				worms_packet(packet_code::login_reply, {.value1 = 0, .error = 1}).write_to(writer);
-				co_await _socket.async_write_some(buffer(writer.span()), use_awaitable);
+				const auto bytes = worms_packet::freeze(packet_code::login_reply, {.value1 = 0, .error = 1});
+				co_await _socket.async_write_some(buffer(bytes->data), use_awaitable);
 				co_return nullptr;
 			}
 			current_users.clear();
@@ -296,13 +280,10 @@ namespace worms_server
 															login_info->fields().session_info->nation);
 
 			// Notify other users we've logged in
-			auto writer = net::packet_writer();
-			worms_packet(packet_code::login, {
-							 .value1 = user_id, .value4 = 0, .name = username,
-							 .session_info = client_user->get_session_info()
-						 }).write_to(writer);
-
-			auto packet_bytes = writer.span();
+			const auto packet_bytes = worms_packet::freeze(packet_code::login, {
+													   .value1 = user_id, .value4 = 0, .name = username,
+													   .session_info = client_user->get_session_info()
+												   });
 			for (const auto& user : database->get_users())
 			{
 				user->send_packet(packet_bytes);
@@ -311,9 +292,7 @@ namespace worms_server
 			database->add_user(client_user);
 
 			// Send the login reply packet
-			writer.clear();
-			worms_packet(packet_code::login_reply, {.value1 = user_id, .error = 0}).write_to(writer);
-			send_packet(writer.span());
+			send_packet(worms_packet::freeze(packet_code::login_reply, {.value1 = user_id, .error = 0}));
 
 			co_return client_user;
 		}
@@ -371,7 +350,7 @@ namespace worms_server
 							break;
 						}
 
-						if (!co_await packet_handler::get_instance()->handle_packet(_user, database, *maybe_packet))
+						if (!co_await packet_handler::handle_packet(_user, database, *maybe_packet))
 						{
 							spdlog::warn("Packet handler failed or returned false");
 							co_return;

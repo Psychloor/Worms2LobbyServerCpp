@@ -5,7 +5,6 @@
 #include "worms_packet.hpp"
 #include <algorithm>
 #include <array>
-#include <iostream>
 #include <ostream>
 #include <utility>
 
@@ -13,13 +12,22 @@
 #include "packet_flags.hpp"
 #include "windows_1251.hpp"
 
-worms_server::worms_packet::worms_packet(const packet_code code, packet_fields fields) : _code(code), _flags(0),
-	_fields(std::move(fields))
+using namespace worms_server;
+
+net::shared_bytes worms_packet::freeze(const packet_code code, packet_fields fields)
+{
+	net::packet_writer writer;
+	worms_packet(code, std::move(fields)).write_to(writer);
+	return writer.freeze();
+}
+
+worms_packet::worms_packet(const packet_code code, packet_fields fields) : _code(code), _flags(0),
+																		   _fields(std::move(fields))
 {
 }
 
-std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>, std::string>
-worms_server::worms_packet::read_from(
+std::expected<std::optional<std::shared_ptr<worms_packet>>, std::string>
+worms_packet::read_from(
 	net::packet_reader& reader)
 {
 	if (!reader.can_read(sizeof(uint32_t) * 2))
@@ -161,11 +169,11 @@ worms_server::worms_packet::read_from(
 
 	if (has_flag(flags, packet_flags::name))
 	{
-		if (!reader.can_read(worms_packet::max_name_length))
+		if (!reader.can_read(max_name_length))
 		{
 			return std::nullopt;
 		}
-		const auto name_encoded_bytes = reader.read_bytes(worms_packet::max_name_length).value();
+		const auto name_encoded_bytes = reader.read_bytes(max_name_length).value();
 
 		// Find the first null terminator or use the whole buffer
 		const auto terminator_pos = std::ranges::find(name_encoded_bytes, static_cast<std::byte>(0));
@@ -215,7 +223,7 @@ worms_server::worms_packet::read_from(
 	return std::make_optional(std::move(packet));
 }
 
-void worms_server::worms_packet::write_to(net::packet_writer& writer) const
+void worms_packet::write_to(net::packet_writer& writer) const
 {
 	writer.write_le(static_cast<uint32_t>(_code));
 	writer.write_le(get_flags_from_fields());
@@ -294,23 +302,23 @@ void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 	}
 }
 
-worms_server::packet_code worms_server::worms_packet::code() const
+packet_code worms_packet::code() const
 {
 	return _code;
 }
 
-size_t worms_server::worms_packet::data_length() const
+size_t worms_packet::data_length() const
 {
 	return _fields.data_length.value_or(0);
 }
 
-void worms_server::worms_packet::set_data_length(size_t length)
+void worms_packet::set_data_length(size_t length)
 {
 	_flags |= static_cast<uint32_t>(packet_flags::data_length);
 	_fields.data_length = static_cast<uint32_t>(length);
 }
 
-const worms_server::packet_fields& worms_server::worms_packet::fields() const
+const packet_fields& worms_packet::fields() const
 {
 	return _fields;
 }
