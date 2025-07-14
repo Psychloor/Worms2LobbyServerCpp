@@ -10,9 +10,8 @@
 #include <cstdint>
 
 #include "packet_flags.hpp"
-#include "header_only/packet_buffers.hpp"
-
 #include "session_info.hpp"
+#include "header_only/packet_buffers.hpp"
 
 namespace worms_server
 {

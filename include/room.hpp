@@ -8,7 +8,6 @@
 #include <string>
 #include <boost/asio/ip/address_v4.hpp>
 
-#include "database.hpp"
 #include "session_info.hpp"
 #include "spdlog/spdlog.h"
 

@@ -11,15 +11,15 @@
 
 #include <boost/asio.hpp>
 
-#include "database.hpp"
 #include "session_info.hpp"
 #include "worms_packet.hpp"
 
-#include "user_session.hpp"
 #include "spdlog/spdlog.h"
 
 namespace worms_server
 {
+	class user_session;
+
 	class user
 	{
 	public:
@@ -37,7 +37,7 @@ namespace worms_server
 		void clear_session();
 		void send_packet(const std::span<const std::byte>& packet) const;
 
-		ip::address_v4 get_address() const;
+		boost::asio::ip::address_v4 get_address() const;
 
 
 
