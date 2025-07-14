@@ -14,38 +14,27 @@ worms_server::user::user(const std::shared_ptr<user_session>& session, const uin
 
 uint32_t worms_server::user::get_id() const
 {
-	std::shared_lock lock(_mutex);
 	return _id;
 }
 
 std::string_view worms_server::user::get_name() const
 {
-	std::shared_lock lock(_mutex);
 	return _name;
 }
 
 const worms_server::session_info& worms_server::user::get_session_info() const
 {
-	std::shared_lock lock(_mutex);
 	return _session_info;
 }
 
 uint32_t worms_server::user::get_room_id() const
 {
-	std::shared_lock lock(_mutex);
-	return _room_id;
+	return _room_id.load(std::memory_order_acquire);
 }
 
 void worms_server::user::set_room_id(const uint32_t room_id)
 {
-	std::unique_lock lock(_mutex);
-	_room_id = room_id;
-}
-
-void worms_server::user::clear_session()
-{
-	std::unique_lock lock(_mutex);
-	_session.reset();
+	_room_id.store(room_id, std::memory_order_release);
 }
 
 void worms_server::user::send_packet(const std::span<const std::byte>& packet) const

@@ -34,7 +34,7 @@ namespace worms_server
 		[[nodiscard]] const session_info& get_session_info() const;
 		[[nodiscard]] uint32_t get_room_id() const;
 		void set_room_id(uint32_t room_id);
-		void clear_session();
+
 		void send_packet(const std::span<const std::byte>& packet) const;
 
 		boost::asio::ip::address_v4 get_address() const;
@@ -42,12 +42,10 @@ namespace worms_server
 
 
 	private:
-		mutable std::shared_mutex _mutex;
-
 		uint32_t _id;
 		std::string _name;
 		session_info _session_info;
-		uint32_t _room_id{0};
+		std::atomic<uint32_t> _room_id;
 		std::weak_ptr<user_session> _session;
 	};
 }

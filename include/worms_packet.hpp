@@ -50,30 +50,29 @@ namespace worms_server
 
 		[[nodiscard]] const packet_fields& fields() const;
 
-	private:
-		constexpr uint32_t get_flags_from_fields() const;
+		constexpr auto get_flags_from_fields(this const auto& self)
+		{
+			uint32_t flags = 0;
+			if (self._fields.value0) flags |= static_cast<uint32_t>(packet_flags::value0);
+			if (self._fields.value1) flags |= static_cast<uint32_t>(packet_flags::value1);
+			if (self._fields.value2) flags |= static_cast<uint32_t>(packet_flags::value2);
+			if (self._fields.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
+			if (self._fields.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
+			if (self._fields.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
+			if (self._fields.data_length || self._fields.data) flags |= static_cast<uint32_t>(packet_flags::data_length);
+			if (self._fields.data) flags |= static_cast<uint32_t>(packet_flags::data);
+			if (self._fields.error) flags |= static_cast<uint32_t>(packet_flags::error);
+			if (self._fields.name) flags |= static_cast<uint32_t>(packet_flags::name);
+			if (self._fields.session_info) flags |= static_cast<uint32_t>(packet_flags::session_info);
+			return flags;
+		}
 
+	private:
 		packet_code _code;
 		uint32_t _flags;
 		packet_fields _fields;
 	};
 
-	constexpr uint32_t worms_packet::get_flags_from_fields() const
-	{
-		uint32_t flags = 0;
-		if (_fields.value0) flags |= static_cast<uint32_t>(packet_flags::value0);
-		if (_fields.value1) flags |= static_cast<uint32_t>(packet_flags::value1);
-		if (_fields.value2) flags |= static_cast<uint32_t>(packet_flags::value2);
-		if (_fields.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
-		if (_fields.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
-		if (_fields.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
-		if (_fields.data_length || _fields.data) flags |= static_cast<uint32_t>(packet_flags::data_length);
-		if (_fields.data) flags |= static_cast<uint32_t>(packet_flags::data);
-		if (_fields.error) flags |= static_cast<uint32_t>(packet_flags::error);
-		if (_fields.name) flags |= static_cast<uint32_t>(packet_flags::name);
-		if (_fields.session_info) flags |= static_cast<uint32_t>(packet_flags::session_info);
-		return flags;
-	}
 }
 
 

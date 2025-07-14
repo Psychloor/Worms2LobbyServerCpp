@@ -24,11 +24,6 @@ namespace net
 			_buffer.reserve(initial_capacity);
 		}
 
-		void append(std::span<const std::byte> data)
-		{
-			_buffer.insert(_buffer.end(), data.begin(), data.end());
-		}
-
 		void append(const std::byte* data, const size_t length)
 		{
 			_buffer.insert(_buffer.end(), data, data + length);
@@ -41,10 +36,10 @@ namespace net
 
 		[[nodiscard]] std::span<const std::byte> peek() const noexcept
 		{
-			return std::span<const std::byte>(_buffer);
+			return std::span(_buffer);
 		}
 
-		void reserve(size_t capacity)
+		void reserve(const size_t capacity)
 		{
 			_buffer.reserve(capacity);
 		}
@@ -92,13 +87,13 @@ namespace net
 				}
 
 				// Shrink buffer if it's too large
-				if (_buffer.capacity() > 16384 && _buffer.size() < _buffer.capacity() / 4)
+				if (_buffer.capacity() > 16384 && _buffer.size() < (_buffer.capacity() >> 2)) // Divide by 4
 				{
 					_buffer.shrink_to_fit();
 				}
 			}
 
-			return optional_packet;
+			return std::move(optional_packet);
 		}
 
 	private:

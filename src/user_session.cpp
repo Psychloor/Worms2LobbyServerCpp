@@ -88,7 +88,6 @@ namespace worms_server
 		uint32_t room_id = client_user->get_room_id();
 		const auto database = database::get_instance();
 
-		client_user->clear_session();
 		database->remove_user(left_id);
 
 		// Close abandoned game
