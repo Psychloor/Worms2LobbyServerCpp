@@ -6,7 +6,6 @@
 #define PACKET_FLAGS_HPP
 
 #include <cstdint>
-#include <type_traits>
 
 namespace worms_server
 {
