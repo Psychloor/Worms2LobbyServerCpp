@@ -218,7 +218,7 @@ worms_server::worms_packet::read_from(
 void worms_server::worms_packet::write_to(net::packet_writer& writer) const
 {
 	writer.write_le(static_cast<uint32_t>(_code));
-	writer.write_le(get_flags_set());
+	writer.write_le(get_flags_from_fields());
 
 	if (_fields.value0.has_value())
 	{
@@ -313,20 +313,4 @@ void worms_server::worms_packet::set_data_length(size_t length)
 const worms_server::packet_fields& worms_server::worms_packet::fields() const
 {
 	return _fields;
-}
-
-void worms_server::worms_packet::dump_log() const
-{
-	std::cout << "Packet code: " << static_cast<uint32_t>(_code) << std::endl;
-	std::cout << "Packet flags: " << get_flags_set() << std::endl;
-	std::cout << "Value 0: " << _fields.value0.value_or(0) << std::endl;
-	std::cout << "Value 1: " << _fields.value1.value_or(0) << std::endl;
-	std::cout << "Value 2: " << _fields.value2.value_or(0) << std::endl;
-	std::cout << "Value 3: " << _fields.value3.value_or(0) << std::endl;
-	std::cout << "Value 4: " << _fields.value4.value_or(0) << std::endl;
-	std::cout << "Value 10: " << _fields.value10.value_or(0) << std::endl;
-	std::cout << "Data length: " << _fields.data_length.value_or(0) << std::endl;
-	std::cout << "Data: " << _fields.data.value_or("") << std::endl;
-	std::cout << "Error: " << _fields.error.value_or(0) << std::endl;
-	std::cout << "Name: " << _fields.name.value_or("") << std::endl;
 }

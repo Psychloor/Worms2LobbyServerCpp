@@ -38,7 +38,7 @@ namespace worms_server
 
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
-		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_server::worms_packet>>, std::string>
+		[[nodiscard]] static std::expected<std::optional<std::shared_ptr<worms_packet>>, std::string>
 		read_from(
 			net::packet_reader& reader);
 		void write_to(net::packet_writer& writer) const;
@@ -49,24 +49,16 @@ namespace worms_server
 		void set_data_length(size_t length);
 
 		[[nodiscard]] const packet_fields& fields() const;
-		void dump_log() const;
-
-		/*template <packet_code Code, typename... Args>
-		[[nodiscard]]
-		static worms_packet make_packet(Args&&... args)
-		{
-			return worms_packet(Code, packet_fields{std::forward<Args>(args)...});
-		}*/
 
 	private:
-		constexpr uint32_t get_flags_set() const;
+		constexpr uint32_t get_flags_from_fields() const;
 
 		packet_code _code;
 		uint32_t _flags;
 		packet_fields _fields;
 	};
 
-	constexpr uint32_t worms_packet::get_flags_set() const
+	constexpr uint32_t worms_packet::get_flags_from_fields() const
 	{
 		uint32_t flags = 0;
 		if (_fields.value0) flags |= static_cast<uint32_t>(packet_flags::value0);
