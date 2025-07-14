@@ -17,6 +17,7 @@ namespace worms_server
 	public:
 		explicit game(uint32_t id, std::string_view name, nation nation, uint32_t room_id,
 					  boost::asio::ip::address_v4 address, session_access access);
+
 		~game()
 		{
 			spdlog::debug("Game {} has been destroyed", _id);

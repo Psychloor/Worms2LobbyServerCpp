@@ -57,8 +57,9 @@ namespace worms_server
 			if (self._fields.value3) flags |= static_cast<uint32_t>(packet_flags::value3);
 			if (self._fields.value4) flags |= static_cast<uint32_t>(packet_flags::value4);
 			if (self._fields.value10) flags |= static_cast<uint32_t>(packet_flags::value10);
-			if (self._fields.data_length || self._fields.data) flags |= static_cast<uint32_t>(
-				packet_flags::data_length);
+			if (self._fields.data_length || self._fields.data)
+				flags |= static_cast<uint32_t>(
+					packet_flags::data_length);
 			if (self._fields.data) flags |= static_cast<uint32_t>(packet_flags::data);
 			if (self._fields.error) flags |= static_cast<uint32_t>(packet_flags::error);
 			if (self._fields.name) flags |= static_cast<uint32_t>(packet_flags::name);
@@ -66,10 +67,17 @@ namespace worms_server
 			return flags;
 		}
 
+		template <packet_code Code>
+		static const net::shared_bytes_ptr& get_cached_packet()
+		{
+			static const auto packet = freeze(Code);
+			return packet;
+		}
+
+
 		static const net::shared_bytes_ptr& get_list_end_packet()
 		{
-			static const auto packet = freeze(packet_code::list_end);
-			return packet;
+			return get_cached_packet<packet_code::list_end>();
 		}
 
 	private:

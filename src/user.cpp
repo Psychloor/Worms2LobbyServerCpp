@@ -39,7 +39,8 @@ void worms_server::user::set_room_id(const uint32_t room_id)
 
 void worms_server::user::send_packet(const net::shared_bytes_ptr& packet) const
 {
-	if (auto session = _session.lock()) {
+	if (auto session = _session.lock())
+	{
 		session->send_packet(packet);
 	}
 }

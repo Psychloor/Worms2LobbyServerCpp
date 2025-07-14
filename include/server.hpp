@@ -13,9 +13,9 @@ using namespace boost::asio;
 
 namespace worms_server
 {
-	class server {
+	class server
+	{
 	public:
-
 		server(uint16_t port, size_t max_connections);
 
 		void run(size_t thread_count);

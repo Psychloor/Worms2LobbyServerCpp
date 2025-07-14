@@ -40,7 +40,9 @@ namespace worms_server
 			database->remove_room(room_id);
 		}
 
-		const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {.value2 = room_id, .value10 = left_id});
+		const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {
+																	  .value2 = room_id, .value10 = left_id
+																  });
 		const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = room_id});
 
 		for (const auto& user : users)
@@ -94,9 +96,9 @@ namespace worms_server
 			database->remove_game(left_id);
 
 			const auto room_leave_packet_bytes = worms_packet::freeze(packet_code::leave, {
-																  .value2 = game->get_id(),
-																  .value10 = client_user->get_id()
-															  });
+																		  .value2 = game->get_id(),
+																		  .value10 = client_user->get_id()
+																	  });
 			const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = game->get_id()});
 			for (const auto& user : database->get_users())
 			{
@@ -114,7 +116,8 @@ namespace worms_server
 		co_await leave_room(database->get_room(room_id), left_id);
 
 		// Notify other users we've disconnected
-		const auto packet_bytes = worms_packet::freeze(packet_code::disconnect_user, {.value10 = client_user->get_id()});
+		const auto packet_bytes =
+			worms_packet::freeze(packet_code::disconnect_user, {.value10 = client_user->get_id()});
 		for (const auto& user : database->get_users())
 		{
 			user->send_packet(packet_bytes);
@@ -281,9 +284,9 @@ namespace worms_server
 
 			// Notify other users we've logged in
 			const auto packet_bytes = worms_packet::freeze(packet_code::login, {
-													   .value1 = user_id, .value4 = 0, .name = username,
-													   .session_info = client_user->get_session_info()
-												   });
+															   .value1 = user_id, .value4 = 0, .name = username,
+															   .session_info = client_user->get_session_info()
+														   });
 			for (const auto& user : database->get_users())
 			{
 				user->send_packet(packet_bytes);

@@ -25,31 +25,55 @@
 
 namespace net
 {
+	struct shared_bytes;
 	using byte = std::byte;
+	using shared_bytes_ptr = std::shared_ptr<shared_bytes>;
 
 	// Base bytes struct with CRTP pattern
-	template<typename Derived>
-	struct bytes_base : std::enable_shared_from_this<Derived> {
+	template <typename Derived>
+	struct bytes_base : std::enable_shared_from_this<Derived>
+	{
 		virtual ~bytes_base() = default;
 		using byte = std::byte;
 
-		[[nodiscard]] std::span<const byte> view() const noexcept {
+		[[nodiscard]] std::span<const byte> view() const noexcept
+		{
 			return {data(), size()};
 		}
+
+		// Convert to shared_bytes_ptr
+		[[nodiscard]] net::shared_bytes_ptr to_shared()
+		{
+			return std::static_pointer_cast<shared_bytes>(this->shared_from_this());
+		}
+
+		// Helper for view comparison
+		[[nodiscard]] bool view_equals(const bytes_base& other) const noexcept
+		{
+			return size() == other.size() &&
+				std::equal(data(), data() + size(), other.data());
+		}
+
 
 		[[nodiscard]] virtual const byte* data() const noexcept = 0;
 		[[nodiscard]] virtual size_t size() const noexcept = 0;
 	};
 
 	// Immutable shared bytes implementation
-	struct shared_bytes final : bytes_base<shared_bytes> {
+	struct shared_bytes final : bytes_base<shared_bytes>
+	{
 		explicit shared_bytes(std::vector<byte>&& data)
-			: _data(std::move(data)) {}
+			: _data(std::move(data))
+		{
+		}
 
-		[[nodiscard]] const byte* data() const noexcept override {
+		[[nodiscard]] const byte* data() const noexcept override
+		{
 			return _data.data();
 		}
-		[[nodiscard]] size_t size() const noexcept override {
+
+		[[nodiscard]] size_t size() const noexcept override
+		{
 			return _data.size();
 		}
 
@@ -58,14 +82,13 @@ namespace net
 	};
 
 
-
 	// Helper for creating shared bytes
-	template<typename... Args>
-	[[nodiscard]] auto make_shared_bytes(Args&&... args) {
+	template <typename... Args>
+	[[nodiscard]] auto make_shared_bytes(Args&&... args)
+	{
 		return std::make_shared<shared_bytes>(std::forward<Args>(args)...);
 	}
 
-	using shared_bytes_ptr = std::shared_ptr<shared_bytes>;
 
 	// -----------------------------------------------------------
 	// PacketWriter – append‑only binary buffer for outgoing packets.
@@ -112,17 +135,18 @@ namespace net
 		[[nodiscard]] constexpr std::span<const byte> span() const noexcept { return _buffer; }
 		[[nodiscard]] constexpr size_t size() const noexcept { return _buffer.size(); }
 
-		[[nodiscard]] net::shared_bytes_ptr to_shared() && {
+		[[nodiscard]] net::shared_bytes_ptr to_shared() &&
+		{
 			return make_shared_bytes(std::move(_buffer));
 		}
 
 		// Efficient append from shared_bytes
-		void append_bytes(const net::shared_bytes& bytes) {
+		void append_bytes(const net::shared_bytes& bytes)
+		{
 			_buffer.insert(_buffer.end(),
-						  bytes.data(),
-						  bytes.data() + bytes.size());
+						   bytes.data(),
+						   bytes.data() + bytes.size());
 		}
-
 
 
 		constexpr void clear() noexcept { _buffer.clear(); }

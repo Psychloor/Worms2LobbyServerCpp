@@ -8,7 +8,6 @@
 #include "spdlog/spdlog.h"
 
 
-
 namespace worms_server
 {
 	std::atomic<unsigned int> server::connection_count{0};
@@ -68,7 +67,8 @@ namespace worms_server
 
 		for (size_t i = 0; i < thread_count - 1; ++i)
 		{
-			_threads.emplace_back([this]() {
+			_threads.emplace_back([this]()
+			{
 				_io_context.run();
 			});
 		}

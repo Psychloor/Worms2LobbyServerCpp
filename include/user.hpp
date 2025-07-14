@@ -24,6 +24,7 @@ namespace worms_server
 	{
 	public:
 		explicit user(const std::shared_ptr<user_session>& session, uint32_t id, std::string_view name, nation nation);
+
 		~user()
 		{
 			spdlog::debug("User {} has been destroyed", _id);
