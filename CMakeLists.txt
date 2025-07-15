@@ -87,6 +87,14 @@ find_package(Boost REQUIRED COMPONENTS system)
 set(SPDLOG_USE_STD_FORMAT ON)
 add_subdirectory(third_party/spdlog)
 
+# Configure spdlog options
+set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "Use external fmt library instead of bundled" FORCE)
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "Build example" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
+set(SPDLOG_INSTALL OFF CACHE BOOL "Generate the install target" FORCE)
+
+
 # Optimization flags for non-MSVC compilers
 if (NOT MSVC)
     if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
