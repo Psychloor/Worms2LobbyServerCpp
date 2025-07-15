@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.31)
 
+# vcpkg integration
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "")
+endif()
+
 project(WormsServer
         VERSION 1.0.0
         LANGUAGES CXX
@@ -68,12 +74,6 @@ set(SOURCES
 )
 
 # Dependencies
-set(Boost_DIR "C:/Boost" CACHE PATH "Path to Boost installation")
-file(TO_CMAKE_PATH "${Boost_DIR}" Boost_DIR)
-
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED)
 
 # spdlog setup
@@ -106,6 +106,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        Boost::boost
         header_only
         spdlog::spdlog
 )

@@ -122,7 +122,7 @@ namespace worms_server
             std::format("PRV:[ {} ]  ", client_user->get_name())))
         {
             const auto& target_user = database->get_user(target_id);
-            if (target_user == nullptr)
+            if (target_user == nullptr || !target_user->get_room_id() != client_room_id)
             {
                 client_user->send_packet(
                     worms_packet::freeze(packet_code::chat_room_reply,
@@ -138,7 +138,7 @@ namespace worms_server
             // Notify Sender
             client_user->send_packet(
                 worms_packet::freeze(packet_code::chat_room_reply,
-                    {.error = 1}));
+                    {.error = 0}));
             co_return true;
         }
 
