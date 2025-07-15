@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  BUILD_TYPE: Release
+
 jobs:
   build:
     name: Build & Test (${{ matrix.os }} - ${{ matrix.cc }})
@@ -16,34 +19,33 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
         include:
           - os: ubuntu-latest
-            cc: clang-16  # Specify the version explicitly
-            cxx: clang++-16  # Specify the version explicitly
+            cc: clang-16
+            cxx: clang++-16
             generator: Ninja
           - os: windows-latest
             cc: cl
             cxx: cl
             generator: "Visual Studio 17 2022"
 
-
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+          fetch-depth: 0  # Needed for version tagging
 
-      - name: Cache CMake files
-        uses: actions/cache@v3
-        with:
-          path: |
-            build/_deps
-            build/CMakeCache.txt
-            build/CMakeFiles
-          key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-cmake-
-
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="0.0.0"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -54,104 +56,57 @@ jobs:
             clang-16 \
             ninja-build
 
-      - name: Setup vcpkg (cached)
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: "${{ github.workspace }}/vcpkg"
-          vcpkgJsonGlob: '**/vcpkg.json'
-          runVcpkgInstall: true
-
-      - name: Inject version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          TAG_VERSION=${GITHUB_REF##*/v}
-          jq ". + {\"version-string\": \"$TAG_VERSION\"}" vcpkg.json > vcpkg.temp.json
-          mv vcpkg.temp.json vcpkg.json
-
-      - name: Show vcpkg.json
-        run: cat vcpkg.json
-
-      - name: Configure CMake (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cmake -B ${{github.workspace}}/build \
-          -DCMAKE_CXX_COMPILER=clang++-16 \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -GNinja
-
-      - name: Setup vcpkg (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
-
-      - name: Configure CMake (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cmake -B ${{github.workspace}}/build `
-          -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake `
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-
-      - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }}
-
-      - name: Test
-        working-directory: build
-        run: ctest --output-on-failure --build-config ${{ matrix.build_type }}
-
-  release:
-    name: Package & Publish Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: "${{ github.workspace }}/vcpkg"
           vcpkgJsonGlob: '**/vcpkg.json'
-          runVcpkgInstall: true
 
-      - name: Configure (Release)
-        run: >
-          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Configure CMake (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CC: clang-16
+          CXX: clang++-16
+          TAG_VERSION: ${{ env.VERSION }}
+        run: |
+          cmake -B ${{github.workspace}}/build \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+          -GNinja
+
+      - name: Configure CMake (Windows)
+        if: matrix.os == 'windows-latest'
+        env:
+          TAG_VERSION: ${{ env.VERSION }}
+        run: |
+          cmake -B ${{github.workspace}}/build `
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} `
+          -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Package Linux (tar.gz)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          mkdir -p artifacts
-          cp build/WormsServer artifacts/
-          tar -czf artifacts/WormsServer-${{ github.ref_name }}-linux.tar.gz -C artifacts WormsServer
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
 
-      - name: Package Windows (zip)
-        if: matrix.os == 'windows-latest'
-        run: |
-          mkdir artifacts
-          copy build\Release\WormsServer.exe artifacts\
-          powershell Compress-Archive -Path artifacts\WormsServer.exe -DestinationPath artifacts\WormsServer-${{ github.ref_name }}-windows.zip
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
 
-      - name: Upload GitHub Release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-          files: |
-            artifacts/*.zip
-            artifacts/*.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

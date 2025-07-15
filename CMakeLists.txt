@@ -6,12 +6,16 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
             CACHE STRING "")
 endif()
 
-if(DEFINED PROJECT_VERSION AND NOT "${PROJECT_VERSION}" STREQUAL "")
-    message(STATUS "Overriding project version with tag: ${PROJECT_VERSION}")
-    set(FINAL_PROJECT_VERSION "${PROJECT_VERSION}")
+
+# Version handling
+if(DEFINED ENV{TAG_VERSION})
+    set(FINAL_PROJECT_VERSION $ENV{TAG_VERSION})
+    message(STATUS "Using version from TAG: ${FINAL_PROJECT_VERSION}")
 else()
     set(FINAL_PROJECT_VERSION "1.0.0")
+    message(STATUS "Using default version: ${FINAL_PROJECT_VERSION}")
 endif()
+
 
 project(WormsServer
         VERSION ${FINAL_PROJECT_VERSION}
