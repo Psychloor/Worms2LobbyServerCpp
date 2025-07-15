@@ -77,8 +77,8 @@ namespace worms_server
 		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value0.value_or(0) != client_user->get_id() || !
-			packet->fields().value3.has_value() || !
-			packet->fields().data.has_value())
+			packet->fields().value3 || !
+			packet->fields().data)
 		{
 			spdlog::error("Invalid packet data\n");
 			co_return false;
@@ -324,7 +324,7 @@ namespace worms_server
 	                               const std::shared_ptr<database>& database,
 	                               const worms_packet_ptr& packet)
 	{
-		if (!packet->fields().value2.has_value() || packet->fields().value10.
+		if (!packet->fields().value2 || packet->fields().value10.
 			value_or(0) != client_user->get_id())
 		{
 			spdlog::error("Invalid packet data");
@@ -394,7 +394,7 @@ namespace worms_server
 	                                const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value10.value_or(0) != client_user->get_id() || !
-			packet->fields().value2.has_value())
+			packet->fields().value2)
 		{
 			spdlog::error("Invalid packet data");
 			co_return false;
@@ -425,7 +425,7 @@ namespace worms_server
 	                                const std::shared_ptr<database>& database,
 	                                const worms_packet_ptr& packet)
 	{
-		if (!packet->fields().value10.has_value())
+		if (!packet->fields().value10)
 		{
 			spdlog::error("Invalid packet data");
 			co_return false;
@@ -447,9 +447,9 @@ namespace worms_server
 		if (packet->fields().value1.value_or(1) != 0
 			|| packet->fields().value2.value_or(0) != client_user->get_room_id()
 			|| packet->fields().value4.value_or(0) != 0x800
-			|| !packet->fields().data.has_value()
-			|| !packet->fields().name.has_value()
-			|| !packet->fields().session_info.has_value())
+			|| !packet->fields().data
+			|| !packet->fields().name
+			|| !packet->fields().session_info)
 		{
 			spdlog::error("Invalid packet data");
 			co_return false;
@@ -520,7 +520,7 @@ namespace worms_server
 		const std::shared_ptr<database>& database,
 		const worms_packet_ptr& packet)
 	{
-		if (!packet->fields().value0.has_value())
+		if (!packet->fields().value0)
 		{
 			std::cerr << "Invalid packet data\n";
 			spdlog::error("Invalid packet data");
