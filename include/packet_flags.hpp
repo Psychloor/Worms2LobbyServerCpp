@@ -26,7 +26,7 @@ namespace worms_server
 
 	// Helper function to test flags
 	static constexpr bool has_flag(const uint32_t value,
-								   const packet_flags flag)
+	                               const packet_flags flag)
 	{
 		return (value & static_cast<uint32_t>(flag)) != 0;
 	}

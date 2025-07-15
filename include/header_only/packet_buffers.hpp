@@ -65,8 +65,7 @@ namespace net
 	{
 		explicit shared_bytes(std::vector<byte>&& data)
 			: data_(std::move(data))
-		{
-		}
+		{}
 
 		[[nodiscard]] const byte* data() const noexcept override
 		{
@@ -121,16 +120,16 @@ namespace net
 		constexpr void write_le(T v)
 		{
 			write(std::endian::native == std::endian::little
-					  ? v
-					  : std::byteswap(v));
+				      ? v
+				      : std::byteswap(v));
 		}
 
 		template <typename T> requires std::is_integral_v<T>
 		constexpr void write_be(T v)
 		{
 			write(std::endian::native == std::endian::big
-					  ? v
-					  : std::byteswap(v));
+				      ? v
+				      : std::byteswap(v));
 		}
 
 		void write_c_string(std::string_view str)
@@ -159,8 +158,8 @@ namespace net
 		void append_bytes(const net::shared_bytes& bytes)
 		{
 			buffer_.insert(std::end(buffer_),
-						   bytes.data(),
-						   bytes.data() + bytes.size());
+			               bytes.data(),
+			               bytes.data() + bytes.size());
 		}
 
 
@@ -180,8 +179,7 @@ namespace net
 		constexpr explicit packet_reader(
 			const std::span<const std::byte> data) noexcept : data_(data),
 			consumed_(0)
-		{
-		}
+		{}
 
 		// Core reading operations with std::expected for error handling
 		template <typename T> requires std::is_trivially_copyable_v<T>
@@ -254,7 +252,8 @@ namespace net
 
 		[[nodiscard]] constexpr std::optional<std::string> read_c_string()
 		{
-			const auto start = std::begin(data_) + static_cast<ptrdiff_t>(consumed_);
+			const auto start = std::begin(data_) + static_cast<ptrdiff_t>(
+				consumed_);
 			const auto end = std::end(data_);
 			const auto null_term = std::find(start, end, byte{0});
 
@@ -279,7 +278,8 @@ namespace net
 					return std::string_view{
 						reinterpret_cast<const char*>(bytes->data()),
 						static_cast<unsigned long long>(std::distance(
-							bytes->begin(), null_pos))
+							bytes->begin(),
+							null_pos))
 					};
 				}
 			}
@@ -325,7 +325,8 @@ namespace net
 		[[nodiscard]] constexpr std::span<const byte> remaining() const noexcept
 		{
 			return std::span{
-				std::begin(data_) + static_cast<ptrdiff_t>(consumed_), data_.size_bytes() - consumed_
+				std::begin(data_) + static_cast<ptrdiff_t>(consumed_),
+				data_.size_bytes() - consumed_
 			};
 		}
 

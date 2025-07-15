@@ -47,7 +47,8 @@ namespace worms_server
 
     private:
         static size_t utf8_to_codepoint(const std::string& utf8_str,
-                                        const size_t pos, uint32_t& codepoint)
+                                        const size_t pos,
+                                        uint32_t& codepoint)
         {
             unsigned char const first = utf8_str[pos];
 
@@ -140,12 +141,12 @@ namespace worms_server
             // Handle special cases
             switch (unicode)
             {
-            case 0x2116: return 0xB9; // №
-            case 0x0401: return 0xA8; // Ё
-            case 0x0451: return 0xB8; // ё
-            // Add more special cases as needed
-            default: return '?';
-                // Return question mark for unsupported characters
+                case 0x2116: return 0xB9; // №
+                case 0x0401: return 0xA8; // Ё
+                case 0x0451: return 0xB8; // ё
+                // Add more special cases as needed
+                default: return '?';
+                    // Return question mark for unsupported characters
             }
         }
     };

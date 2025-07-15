@@ -49,9 +49,10 @@ namespace worms_server
 
 		session_info() = default;
 
-		session_info(const worms_server::nation nation, const session_type type,
-					 const session_access access =
-						 session_access::public_access)
+		session_info(const worms_server::nation nation,
+		             const session_type type,
+		             const session_access access =
+			             session_access::public_access)
 		{
 			this->nation = nation;
 			this->type = type;
@@ -72,7 +73,7 @@ namespace worms_server
 	};
 
 	static void write_session_info(net::packet_writer& writer,
-								   const session_info& info)
+	                               const session_info& info)
 	{
 		writer.write_le(info.crc1);
 		writer.write_le(info.crc2);
@@ -103,7 +104,8 @@ namespace worms_server
 			return false;
 		}
 
-		const auto result = std::ranges::find_if_not(info.padding,
+		const auto result = std::ranges::find_if_not(
+			info.padding,
 			[](const auto& value) { return value == net::byte{0}; });
 
 		if (result != std::end(info.padding))
@@ -134,7 +136,7 @@ namespace worms_server
 		info.always_zero = reader.read_le<uint8_t>().value();
 
 		const auto padding_bytes = reader.read_bytes(session_info::padding_size)
-										 .value();
+		                                 .value();
 		std::ranges::copy(padding_bytes, std::begin(info.padding));
 
 		if (!verify_session_info(info))

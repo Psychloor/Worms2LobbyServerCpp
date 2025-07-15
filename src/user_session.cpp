@@ -18,7 +18,7 @@
 namespace worms_server
 {
 	static awaitable<void> leave_room(const std::shared_ptr<room>& room,
-									  uint32_t left_id)
+	                                  uint32_t left_id)
 	{
 		const auto database = database::get_instance();
 		const auto users = database->get_users();
@@ -27,17 +27,19 @@ namespace worms_server
 		spdlog::debug("User Session: Leaving room {}", room_id);
 
 		const bool room_closed = room != nullptr
-			&& !std::ranges::any_of(users, [left_id, room_id](const auto& user)
-			{
-				return user->get_id() != left_id && user->get_room_id() ==
-					room_id;
-			})
+			&& !std::ranges::any_of(users,
+			                        [left_id, room_id](const auto& user)
+			                        {
+				                        return user->get_id() != left_id && user
+					                        ->get_room_id() ==
+					                        room_id;
+			                        })
 			&& !std::ranges::any_of(database->get_games(),
-									[left_id, room_id](const auto& game)
-									{
-										return game->get_id() != left_id && game
-											->get_room_id() == room_id;
-									});
+			                        [left_id, room_id](const auto& game)
+			                        {
+				                        return game->get_id() != left_id && game
+					                        ->get_room_id() == room_id;
+			                        });
 
 		if (room_closed)
 		{
@@ -45,11 +47,13 @@ namespace worms_server
 		}
 
 		const auto room_leave_packet_bytes = worms_packet::freeze(
-			packet_code::leave, {
+			packet_code::leave,
+			{
 				.value2 = room_id, .value10 = left_id
 			});
 		const auto room_close_packet_bytes = worms_packet::freeze(
-			packet_code::close, {.value10 = room_id});
+			packet_code::close,
+			{.value10 = room_id});
 
 		for (const auto& user : users)
 		{
@@ -81,7 +85,7 @@ namespace worms_server
 		}
 
 		spdlog::debug("User Session: Disconnecting user {}",
-					  client_user->get_name());
+		              client_user->get_name());
 
 		uint32_t left_id = client_user->get_id();
 
@@ -105,12 +109,13 @@ namespace worms_server
 			database->remove_game(left_id);
 
 			const auto room_leave_packet_bytes = worms_packet::freeze(
-				packet_code::leave, {
-					.value2 = game->get_id(),
-					.value10 = client_user->get_id()
+				packet_code::leave,
+				{
+					.value2 = game->get_id(), .value10 = client_user->get_id()
 				});
 			const auto room_close_packet_bytes = worms_packet::freeze(
-				packet_code::close, {.value10 = game->get_id()});
+				packet_code::close,
+				{.value10 = game->get_id()});
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id())
@@ -129,7 +134,7 @@ namespace worms_server
 		// Notify other users we've disconnected
 		const auto packet_bytes =
 			worms_packet::freeze(packet_code::disconnect_user,
-								 {.value10 = client_user->get_id()});
+			                     {.value10 = client_user->get_id()});
 		for (const auto& user : database->get_users())
 		{
 			user->send_packet(packet_bytes);
@@ -168,10 +173,11 @@ namespace worms_server
 		auto self = shared_from_this();
 
 		co_spawn(socket_.get_executor(),
-				 [self = shared_from_this()]() -> awaitable<void>
-				 {
-					 co_await self->writer();
-				 }, detached);
+		         [self = shared_from_this()]() -> awaitable<void>
+		         {
+			         co_await self->writer();
+		         },
+		         detached);
 
 		auto user = co_await handle_login();
 		if (user == nullptr)
@@ -183,7 +189,7 @@ namespace worms_server
 		user_.store(std::move(user), std::memory_order::release);
 
 		spdlog::info("User {} logged in",
-					 user_.load(std::memory_order::relaxed)->get_name());
+		             user_.load(std::memory_order::relaxed)->get_name());
 
 		co_await handle_session();
 
@@ -214,8 +220,10 @@ namespace worms_server
 				{
 					boost::system::error_code ec;
 					co_await async_write(socket_,
-										 buffer(packet->data(), packet->size()),
-										 redirect_error(use_awaitable, ec));
+					                     buffer(
+						                     packet->data(),
+						                     packet->size()),
+					                     redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
 
@@ -244,7 +252,7 @@ namespace worms_server
 			boost::system::error_code ec;
 
 			co_await socket_.async_receive(buffer(incoming),
-										   redirect_error(use_awaitable, ec));
+			                               redirect_error(use_awaitable, ec));
 			if (ec)
 			{
 				spdlog::error("Error reading login packet: {}", ec.message());
@@ -256,7 +264,7 @@ namespace worms_server
 			if (login_packet.status == net::packet_parse_status::error)
 			{
 				spdlog::error("Error reading login packet: {}",
-							  login_packet.error.value_or(""));
+				              login_packet.error.value_or(""));
 				co_return nullptr;
 			}
 
@@ -289,16 +297,19 @@ namespace worms_server
 
 			auto current_users = database->get_users();
 			const auto found_user = std::ranges::find_if(
-				current_users, [&](const auto& user)
+				current_users,
+				[&](const auto& user)
 				{
 					return boost::iequals(user->get_name(), username);
 				});
 			if (found_user != current_users.end())
 			{
 				const auto bytes = worms_packet::freeze(
-					packet_code::login_reply, {.value1 = 0, .error = 1});
+					packet_code::login_reply,
+					{.value1 = 0, .error = 1});
 				co_await socket_.async_write_some(
-					buffer(bytes->data(), bytes->size()), use_awaitable);
+					buffer(bytes->data(), bytes->size()),
+					use_awaitable);
 				co_return nullptr;
 			}
 			current_users.clear();
@@ -306,14 +317,17 @@ namespace worms_server
 			// create a new user and add it to the database
 			user_id = database::get_next_id();
 			const auto client_user = std::make_shared<user>(
-				shared_from_this(), user_id, username,
+				shared_from_this(),
+				user_id,
+				username,
 				login_info->fields().session_info->nation);
 
 			// Notify other users we've logged in
-			const auto packet_bytes = worms_packet::freeze(packet_code::login, {
-				.value1 = user_id, .value4 = 0, .name = username,
-				.session_info = client_user->get_session_info()
-			});
+			const auto packet_bytes = worms_packet::freeze(packet_code::login,
+				{
+					.value1 = user_id, .value4 = 0, .name = username,
+					.session_info = client_user->get_session_info()
+				});
 			for (const auto& user : database->get_users())
 			{
 				user->send_packet(packet_bytes);
@@ -323,7 +337,9 @@ namespace worms_server
 
 			// Send the login reply packet
 			send_packet(worms_packet::freeze(packet_code::login_reply,
-											 {.value1 = user_id, .error = 0}));
+			                                 {
+				                                 .value1 = user_id, .error = 0
+			                                 }));
 
 			co_return client_user;
 		}
@@ -355,8 +371,8 @@ namespace worms_server
 					if (read == 0 || ec == error::eof)
 					{
 						spdlog::info("User {} disconnected",
-									 user_.load(std::memory_order::relaxed)->
-										   get_name());
+						             user_.load(std::memory_order::relaxed)->
+						                   get_name());
 						break;
 					}
 					if (ec)
@@ -379,12 +395,13 @@ namespace worms_server
 						{
 							// Invalid data
 							spdlog::error("Parse error: {}",
-										  packet.error.value_or(""));
+							              packet.error.value_or(""));
 							co_return;
 						}
 
 						if (!co_await packet_handler::handle_packet(
-							user_.load(std::memory_order::relaxed), database,
+							user_.load(std::memory_order::relaxed),
+							database,
 							std::move(*packet.data)))
 						{
 							spdlog::warn(

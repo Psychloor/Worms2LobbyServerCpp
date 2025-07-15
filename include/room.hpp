@@ -16,8 +16,10 @@ namespace worms_server
 	class room
 	{
 	public:
-		explicit room(uint32_t id, std::string_view name, nation nation,
-					  boost::asio::ip::address_v4 address);
+		explicit room(uint32_t id,
+		              std::string_view name,
+		              nation nation,
+		              boost::asio::ip::address_v4 address);
 
 		~room()
 		{

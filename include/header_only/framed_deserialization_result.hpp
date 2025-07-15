@@ -6,6 +6,7 @@
 #define FRAMED_DESERIALIZATION_RESULT_HPP
 
 #include <optional>
+
 namespace net
 {
 	enum class packet_parse_status

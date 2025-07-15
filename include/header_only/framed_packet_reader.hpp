@@ -13,8 +13,6 @@
 
 namespace net
 {
-
-
 	class framed_packet_reader
 	{
 	public:
@@ -74,9 +72,9 @@ namespace net
 					else
 					{
 						buffer_.erase(std::cbegin(buffer_),
-									  std::cbegin(buffer_) + static_cast<
-										  ptrdiff_t>(
-										  consumed));
+						              std::cbegin(buffer_) + static_cast<
+							              ptrdiff_t>(
+							              consumed));
 					}
 
 					// Shrink buffer if it's too large

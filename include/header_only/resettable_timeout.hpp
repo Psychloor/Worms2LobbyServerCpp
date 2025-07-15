@@ -26,7 +26,8 @@ public:
 	boost::asio::awaitable<bool> wait()
 	{
 		constexpr boost::system::error_code ec;
-		co_await _timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+		co_await _timer.async_wait(
+			boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 		co_return !ec; // true if the timer expired, false if canceled
 	}
 

@@ -37,7 +37,8 @@ namespace worms_server
 			boost::system::error_code ec;
 
 			co_await acceptor.async_accept(
-				socket, redirect_error(use_awaitable, ec));
+				socket,
+				redirect_error(use_awaitable, ec));
 
 			if (!ec)
 			{

@@ -16,24 +16,26 @@
 namespace worms_server
 {
 	static awaitable<void> leave_room(const std::shared_ptr<room>& room,
-									  uint32_t left_id)
+	                                  uint32_t left_id)
 	{
 		const auto database = database::get_instance();
 		const auto users = database->get_users();
 		const uint32_t room_id = room == nullptr ? 5 : room->get_id();
 
 		const bool room_closed = room != nullptr
-			&& !std::ranges::any_of(users, [left_id, room_id](const auto& user)
-			{
-				return user->get_id() != left_id && user->get_room_id() ==
-					room_id;
-			})
+			&& !std::ranges::any_of(users,
+			                        [left_id, room_id](const auto& user)
+			                        {
+				                        return user->get_id() != left_id && user
+					                        ->get_room_id() ==
+					                        room_id;
+			                        })
 			&& !std::ranges::any_of(database->get_games(),
-									[left_id, room_id](const auto& game)
-									{
-										return game->get_id() != left_id && game
-											->get_room_id() == room_id;
-									});
+			                        [left_id, room_id](const auto& game)
+			                        {
+				                        return game->get_id() != left_id && game
+					                        ->get_room_id() == room_id;
+			                        });
 
 		if (room_closed)
 		{
@@ -41,11 +43,13 @@ namespace worms_server
 		}
 
 		const auto room_leave_packet_bytes = worms_packet::freeze(
-			packet_code::leave, {
+			packet_code::leave,
+			{
 				.value2 = room_id, .value10 = left_id
 			});
 		const auto room_close_packet_bytes = worms_packet::freeze(
-			packet_code::close, {.value10 = room_id});
+			packet_code::close,
+			{.value10 = room_id});
 		for (const auto& user : users)
 		{
 			if (user->get_id() == left_id)
@@ -93,7 +97,8 @@ namespace worms_server
 			{
 				// Notify all users of the room.
 				const auto packet_bytes = worms_packet::freeze(
-					packet_code::chat_room, {
+					packet_code::chat_room,
+					{
 						.value0 = client_id, .value3 = client_room_id,
 						.data = message
 					});
@@ -110,14 +115,14 @@ namespace worms_server
 				// Notify sender
 				client_user->send_packet(
 					worms_packet::freeze(packet_code::chat_room_reply,
-										 {.error = 0}));
+					                     {.error = 0}));
 				co_return true;
 			}
 
 			// Notify sender
 			client_user->send_packet(
 				worms_packet::freeze(packet_code::chat_room_reply,
-									 {.error = 1}));
+				                     {.error = 1}));
 			co_return true;
 		}
 
@@ -129,20 +134,21 @@ namespace worms_server
 			{
 				client_user->send_packet(
 					worms_packet::freeze(packet_code::chat_room_reply,
-										 {.error = 1}));
+					                     {.error = 1}));
 				co_return true;
 			}
 
 			// Notify Target
 			target_user->send_packet(worms_packet::freeze(
-				packet_code::chat_room, {
+				packet_code::chat_room,
+				{
 					.value0 = client_id, .value3 = target_id, .data = message
 				}));
 
 			// Notify Sender
 			client_user->send_packet(
 				worms_packet::freeze(packet_code::chat_room_reply,
-									 {.error = 1}));
+				                     {.error = 1}));
 			co_return true;
 		}
 
@@ -163,7 +169,8 @@ namespace worms_server
 		for (const auto rooms = database->get_rooms(); const auto& room : rooms)
 		{
 			client_user->send_packet(worms_packet::freeze(
-				packet_code::list_item, {
+				packet_code::list_item,
+				{
 					.value1 = room->get_id(),
 					.name = std::string(room->get_name()), .data = "",
 					.session_info = room->get_session_info()
@@ -198,7 +205,8 @@ namespace worms_server
 			}
 
 			client_user->send_packet(worms_packet::freeze(
-				packet_code::list_item, {
+				packet_code::list_item,
+				{
 					.value1 = user->get_id(),
 					.name = std::string(user->get_name()), .data = "",
 					.session_info = user->get_session_info()
@@ -232,7 +240,8 @@ namespace worms_server
 			}
 
 			client_user->send_packet(worms_packet::freeze(
-				packet_code::list_item, {
+				packet_code::list_item,
+				{
 					.value1 = game->get_id(),
 					.name = std::string(game->get_name()),
 					.data = game->get_address().to_string(),
@@ -252,10 +261,10 @@ namespace worms_server
 	{
 		if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.
 			value_or(0) != 0 || packet->fields().
-										data.
-										value_or("").empty() || packet->fields()
+			                            data.
+			                            value_or("").empty() || packet->fields()
 			.name.value_or("").empty() || !packet->fields().session_info.
-												   has_value())
+			                                       has_value())
 		{
 			spdlog::error("Invalid packet data");
 			co_return false;
@@ -263,29 +272,33 @@ namespace worms_server
 
 		// Check if the room name is valid is not already taken.
 		if (std::ranges::any_of(database->get_rooms(),
-								[client_name = client_user->get_name()](
-								const auto& room) -> bool
-								{
-									return boost::iequals(
-										room->get_name(), client_name);
-								}))
+		                        [client_name = client_user->get_name()](
+		                        const auto& room) -> bool
+		                        {
+			                        return boost::iequals(
+				                        room->get_name(),
+				                        client_name);
+		                        }))
 		{
 			client_user->send_packet(worms_packet::freeze(
-				packet_code::create_room_reply, {.value1 = 0, .error = 1}));
+				packet_code::create_room_reply,
+				{.value1 = 0, .error = 1}));
 
 			co_return false;
 		}
 
 		const auto room_id = database::get_next_id();
 		const auto room = std::make_shared<worms_server::room>(
-			room_id, packet->fields().name.value(),
+			room_id,
+			packet->fields().name.value(),
 			packet->fields().session_info->nation,
 			client_user->get_address());
 		database::get_instance()->add_room(room);
 
 
 		const auto room_packet_bytes = worms_packet::freeze(
-			packet_code::create_room, {
+			packet_code::create_room,
+			{
 				.value1 = room_id, .value4 = 0,
 				.name = std::string(room->get_name()), .data = "",
 				.session_info = room->get_session_info()
@@ -301,14 +314,15 @@ namespace worms_server
 
 		// Send the creation room reply packet
 		client_user->send_packet(worms_packet::freeze(
-			packet_code::create_room_reply, {.value1 = room_id, .error = 0}));
+			packet_code::create_room_reply,
+			{.value1 = room_id, .error = 0}));
 
 		co_return true;
 	}
 
 	static awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
-								   const std::shared_ptr<database>& database,
-								   const worms_packet_ptr& packet)
+	                               const std::shared_ptr<database>& database,
+	                               const worms_packet_ptr& packet)
 	{
 		if (!packet->fields().value2.has_value() || packet->fields().value10.
 			value_or(0) != client_user->get_id())
@@ -319,19 +333,20 @@ namespace worms_server
 
 		// Require a valid room or game ID.
 		if (std::ranges::any_of(database->get_rooms(),
-								[join_id = packet->fields().value2.value()](
-								const auto& room) -> bool
-								{
-									return room->get_id() == join_id;
-								}))
+		                        [join_id = packet->fields().value2.value()](
+		                        const auto& room) -> bool
+		                        {
+			                        return room->get_id() == join_id;
+		                        }))
 		{
 			client_user->set_room_id(packet->fields().value2.value());
 
 			// Notify other users about the join.
-			const auto packet_bytes = worms_packet::freeze(packet_code::join, {
-				.value2 = packet->fields().value2,
-				.value10 = client_user->get_id()
-			});
+			const auto packet_bytes = worms_packet::freeze(packet_code::join,
+				{
+					.value2 = packet->fields().value2,
+					.value10 = client_user->get_id()
+				});
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id()) { continue; }
@@ -344,19 +359,20 @@ namespace worms_server
 		}
 
 		if (std::ranges::any_of(database->get_games(),
-								[join_id = packet->fields().value2.value(),
-									room_id = client_user->get_room_id()](
-								const auto& game) -> bool
-								{
-									return game->get_id() == join_id && game->
-										get_room_id() == room_id;
-								}))
+		                        [join_id = packet->fields().value2.value(),
+			                        room_id = client_user->get_room_id()](
+		                        const auto& game) -> bool
+		                        {
+			                        return game->get_id() == join_id && game->
+				                        get_room_id() == room_id;
+		                        }))
 		{
 			// Notify other users about the join.
-			const auto packet_bytes = worms_packet::freeze(packet_code::join, {
-				.value2 = client_user->get_room_id(),
-				.value10 = client_user->get_id()
-			});
+			const auto packet_bytes = worms_packet::freeze(packet_code::join,
+				{
+					.value2 = client_user->get_room_id(),
+					.value10 = client_user->get_id()
+				});
 			for (const auto& user : database->get_users())
 			{
 				if (user->get_id() == client_user->get_id()) { continue; }
@@ -374,8 +390,8 @@ namespace worms_server
 	}
 
 	static awaitable<bool> on_leave(const std::shared_ptr<user>& client_user,
-									const std::shared_ptr<database>& database,
-									const worms_packet_ptr& packet)
+	                                const std::shared_ptr<database>& database,
+	                                const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value10.value_or(0) != client_user->get_id() || !
 			packet->fields().value2.has_value())
@@ -388,7 +404,7 @@ namespace worms_server
 		if (packet->fields().value2.value() == client_user->get_room_id())
 		{
 			co_await leave_room(database->get_room(client_user->get_room_id()),
-								client_user->get_id());
+			                    client_user->get_id());
 			client_user->set_room_id(0);
 
 			// Reply to leaver.
@@ -406,8 +422,8 @@ namespace worms_server
 	}
 
 	static awaitable<bool> on_close(const std::shared_ptr<user>& client_user,
-									const std::shared_ptr<database>& database,
-									const worms_packet_ptr& packet)
+	                                const std::shared_ptr<database>& database,
+	                                const worms_packet_ptr& packet)
 	{
 		if (!packet->fields().value10.has_value())
 		{
@@ -456,7 +472,8 @@ namespace worms_server
 			// Create a new game.
 			const auto game_id = database::get_next_id();
 			const auto game = std::make_shared<worms_server::game>(
-				game_id, client_user->get_name(),
+				game_id,
+				client_user->get_name(),
 				client_user->get_session_info().nation,
 				client_user->get_room_id(),
 				client_user->get_address(),
@@ -465,7 +482,8 @@ namespace worms_server
 
 			// Notify other users about the new game, even those in other rooms.
 			const auto packet_bytes = worms_packet::freeze(
-				packet_code::create_game, {
+				packet_code::create_game,
+				{
 					.value1 = game_id, .value2 = game->get_room_id(),
 					.value4 = 0x800, .name = std::string(game->get_name()),
 					.data = game->get_address().to_string(),
@@ -480,17 +498,19 @@ namespace worms_server
 			// Send reply to host;
 			client_user->send_packet(
 				worms_packet::freeze(packet_code::create_game_reply,
-									 {.value1 = game_id, .error = 0}));
+				                     {.value1 = game_id, .error = 0}));
 		}
 
 
 		client_user->send_packet(worms_packet::freeze(
-			packet_code::create_game_reply, {.value1 = 0, .error = 2}));
-		client_user->send_packet(worms_packet::freeze(packet_code::chat_room, {
-			.value0 = client_user->get_id(),
-			.value3 = client_user->get_room_id(), .data =
-			"GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
-		}));
+			packet_code::create_game_reply,
+			{.value1 = 0, .error = 2}));
+		client_user->send_packet(worms_packet::freeze(packet_code::chat_room,
+			{
+				.value0 = client_user->get_id(),
+				.value3 = client_user->get_room_id(), .data =
+				"GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
+			}));
 
 		co_return true;
 	}
@@ -511,7 +531,8 @@ namespace worms_server
 		const auto games = database->get_games();
 		const auto it = std::ranges::find_if(
 			games,
-			[game_id = packet->fields().value0.value(), room_id = client_user->
+			[game_id = packet->fields().value0.value(), room_id = client_user
+				->
 				get_room_id()](
 			const auto& game) -> bool
 			{
@@ -522,7 +543,8 @@ namespace worms_server
 		if (it == games.end())
 		{
 			client_user->send_packet(worms_packet::freeze(
-				packet_code::connect_game_reply, {.data = "", .error = 1}));
+				packet_code::connect_game_reply,
+				{.data = "", .error = 1}));
 		}
 		else
 		{
@@ -541,63 +563,67 @@ namespace worms_server
 	{
 		switch (packet->code())
 		{
-		case packet_code::chat_room:
-			spdlog::debug("Chat room packet received");
-			co_return co_await on_chat_room(client_user, database, packet);
-			break;
+			case packet_code::chat_room:
+				spdlog::debug("Chat room packet received");
+				co_return co_await on_chat_room(client_user, database, packet);
+				break;
 
-		case packet_code::list_rooms:
-			spdlog::debug("List rooms packet received");
-			co_return co_await on_list_rooms(client_user, database, packet);
-			break;
+			case packet_code::list_rooms:
+				spdlog::debug("List rooms packet received");
+				co_return co_await on_list_rooms(client_user, database, packet);
+				break;
 
-		case packet_code::list_users:
-			spdlog::debug("List users packet received");
-			co_return co_await on_list_users(client_user, database, packet);
-			break;
+			case packet_code::list_users:
+				spdlog::debug("List users packet received");
+				co_return co_await on_list_users(client_user, database, packet);
+				break;
 
-		case packet_code::list_games:
-			spdlog::debug("List games packet received");
-			co_return co_await on_list_games(client_user, database, packet);
-			break;
+			case packet_code::list_games:
+				spdlog::debug("List games packet received");
+				co_return co_await on_list_games(client_user, database, packet);
+				break;
 
-		case packet_code::create_room:
-			spdlog::debug("Create room packet received");
-			co_return co_await on_create_room(client_user, database, packet);
-			break;
+			case packet_code::create_room:
+				spdlog::debug("Create room packet received");
+				co_return co_await
+					on_create_room(client_user, database, packet);
+				break;
 
-		case packet_code::join:
-			spdlog::debug("Join packet received");
-			co_return co_await on_join(client_user, database, packet);
-			break;
+			case packet_code::join:
+				spdlog::debug("Join packet received");
+				co_return co_await on_join(client_user, database, packet);
+				break;
 
-		case packet_code::leave:
-			spdlog::debug("Leave packet received");
-			co_return co_await on_leave(client_user, database, packet);
-			break;
+			case packet_code::leave:
+				spdlog::debug("Leave packet received");
+				co_return co_await on_leave(client_user, database, packet);
+				break;
 
-		case packet_code::close:
-			spdlog::debug("Close packet received");
-			co_return co_await on_close(client_user, database, packet);
-			break;
+			case packet_code::close:
+				spdlog::debug("Close packet received");
+				co_return co_await on_close(client_user, database, packet);
+				break;
 
-		case packet_code::create_game:
-			spdlog::debug("Create game packet received");
-			co_return co_await on_create_game(client_user, database, packet);
-			break;
+			case packet_code::create_game:
+				spdlog::debug("Create game packet received");
+				co_return co_await
+					on_create_game(client_user, database, packet);
+				break;
 
-		case packet_code::connect_game:
-			spdlog::debug("Connect game packet received");
-			co_return co_await on_connect_game(client_user, database, packet);
-			break;
+			case packet_code::connect_game:
+				spdlog::debug("Connect game packet received");
+				co_return co_await on_connect_game(
+					client_user,
+					database,
+					packet);
+				break;
 
-		default:
-			spdlog::error("Unknown packet code: {}",
-						  static_cast<uint32_t>(packet->code()));
-			break;
+			default:
+				spdlog::error("Unknown packet code: {}",
+				              static_cast<uint32_t>(packet->code()));
+				break;
 		}
 
 		co_return false;
 	}
-
 }
