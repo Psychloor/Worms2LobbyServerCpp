@@ -47,7 +47,14 @@ jobs:
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y build-essential clang ninja-build jq
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 16
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build jq clang-16 lldb-16 lld-16
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-16 100
 
       - name: Setup vcpkg (cached)
         uses: lukka/run-vcpkg@v11
