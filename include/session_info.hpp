@@ -8,8 +8,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <iostream>
-#include <ostream>
 
 #include "nation.hpp"
 
@@ -17,6 +15,7 @@
 
 #include "framed_deserialization_result.hpp"
 #include "header_only/packet_buffers.hpp"
+#include "spdlog/spdlog.h"
 
 namespace worms_server
 {
@@ -72,7 +71,7 @@ namespace worms_server
 		read_from(net::packet_reader& reader);
 	};
 
-	static void write_session_info(net::packet_writer& writer,
+	inline void write_session_info(net::packet_writer& writer,
 	                               const session_info& info)
 	{
 		writer.write_le(info.crc1);
@@ -87,20 +86,18 @@ namespace worms_server
 		writer.write(info.padding);
 	}
 
-	static constexpr bool verify_session_info(const session_info& info)
+	[[nodiscard]] static bool verify_session_info(const session_info& info)
 	{
-		if (info.crc1 != 0x17171717 || info.crc2 !=
-			boost::endian::little_to_native(0x02010101))
+		if (info.crc1 != 0x17171717U || info.crc2 !=
+			boost::endian::little_to_native(0x02010101U))
 		{
-			std::cerr << "CRC1: " << info.crc1 << " CRC2: " << info.crc2 <<
-				std::endl;
+			spdlog::error("CRC Missmatch - CRC1: {} CRC2: {}", info.crc1, info.crc2);
 			return false;
 		}
 
 		if (info.always_one != 1 || info.always_zero != 0)
 		{
-			std::cerr << "Always one: " << info.always_one << " Always zero: "
-				<< info.always_zero << std::endl;
+			spdlog::error("Always one/zero mismatch - Always one: {} Always zero: {}", info.always_one, info.always_zero);
 			return false;
 		}
 
@@ -110,7 +107,7 @@ namespace worms_server
 
 		if (result != std::end(info.padding))
 		{
-			std::cerr << "Wrong Padding" << std::endl;
+			spdlog::error("Padding contains non-zero bytes");
 			return false;
 		}
 
