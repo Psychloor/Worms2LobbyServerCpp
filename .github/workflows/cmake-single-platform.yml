@@ -2,8 +2,8 @@ name: CMake-vcpkg-build-and-release
 
 on:
   push:
-    branches: [ "master" ]           # run CI on pushes to master
-    tags: [ "v*" ]                   # create release when pushing tag like v1.0.0
+    branches: [ "master" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "master" ]
 
@@ -17,45 +17,51 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
         include:
-          # Linux
           - os: ubuntu-latest
             cc: gcc
             cxx: g++
           - os: ubuntu-latest
             cc: clang
             cxx: clang++
-          # Windows MSVC
           - os: windows-latest
             cc: cl
             cxx: cl
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true  # pull spdlog submodule
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
-    - name: Setup vcpkg (cached)
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgDirectory: "${{ github.workspace }}/vcpkg"
-        vcpkgJsonGlob: '**/vcpkg.json'   # uses your vcpkg.json
-        runVcpkgInstall: true
+      - name: Inject Git tag version into vcpkg.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION=${GITHUB_REF##*/}
+          jq ". + {\"version-string\": \"$TAG_VERSION\"}" vcpkg.json > vcpkg.temp.json
+          mv vcpkg.temp.json vcpkg.json
 
-    - name: Configure CMake
-      run: >
-        cmake -B build
-              -S .
-              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-              -DCMAKE_C_COMPILER=${{ matrix.cc }}
-              -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
-              -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Setup vcpkg (cached)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: "${{ github.workspace }}/vcpkg"
+          vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: true
 
-    - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }}
+      - name: Configure CMake
+        run: >
+          cmake -B build
+                -S .
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+                -DCMAKE_C_COMPILER=${{ matrix.cc }}
+                -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+                -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-    - name: Test
-      working-directory: build
-      run: ctest --output-on-failure --build-config ${{ matrix.build_type }}
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
   release:
     name: Package & Publish Release
@@ -67,46 +73,47 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgDirectory: "${{ github.workspace }}/vcpkg"
-        vcpkgJsonGlob: '**/vcpkg.json'
-        runVcpkgInstall: true
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: "${{ github.workspace }}/vcpkg"
+          vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: true
 
-    - name: Configure (Release)
-      run: >
-        cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Configure (Release)
+        run: >
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+                -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-    - name: Build
-      run: cmake --build build --config Release
+      - name: Build
+        run: cmake --build build --config Release
 
-    - name: Package Linux (tar.gz)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        mkdir -p artifacts
-        cp build/WormsServer artifacts/
-        tar -czf artifacts/WormsServer-${{ github.ref_name }}-linux.tar.gz -C artifacts WormsServer
+      - name: Package Linux (tar.gz)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p artifacts
+          cp build/WormsServer artifacts/
+          tar -czf artifacts/WormsServer-${{ github.ref_name }}-linux.tar.gz -C artifacts WormsServer
 
-    - name: Package Windows (zip)
-      if: matrix.os == 'windows-latest'
-      run: |
-        mkdir artifacts
-        copy build\Release\WormsServer.exe artifacts\
-        powershell Compress-Archive -Path artifacts\WormsServer.exe -DestinationPath artifacts\WormsServer-${{ github.ref_name }}-windows.zip
+      - name: Package Windows (zip)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir artifacts
+          copy build\Release\WormsServer.exe artifacts\
+          powershell Compress-Archive -Path artifacts\WormsServer.exe -DestinationPath artifacts\WormsServer-${{ github.ref_name }}-windows.zip
 
-    - name: Upload GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        files: |
-          artifacts/*.zip
-          artifacts/*.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

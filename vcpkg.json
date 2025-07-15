@@ -1,9 +1,8 @@
-﻿{
-  "name": "worms-server",
-  "version-string": "1.0.0",
+{
+  "name": "worms2lobbyservercpp",
+  "builtin-baseline": "4fc5d0252289d5dc22a422beff86344a6cb52414",
   "dependencies": [
     "boost-asio",
     "spdlog"
-  ],
-  "builtin-baseline": "bdd229e13c66fa11acdc0bc8fed8e7474cd24aa5"
+  ]
 }
