@@ -95,6 +95,7 @@ set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(SPDLOG_INSTALL OFF CACHE BOOL "Generate the install target" FORCE)
 
 
+
 # Optimization flags for non-MSVC compilers
 if (NOT MSVC)
     if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")

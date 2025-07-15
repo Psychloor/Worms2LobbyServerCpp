@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: 'recursive'
 
       - name: Cache CMake files
         uses: actions/cache@v3
@@ -48,13 +48,11 @@ jobs:
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 16
-          sudo apt-get update
-          sudo apt-get install -y build-essential ninja-build jq clang-16 lldb-16 lld-16
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 100
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-16 100
+          sudo apt-get update && sudo apt-get install -y \
+            build-essential \
+            cmake \
+            clang-16 \
+            ninja-build
 
       - name: Setup vcpkg (cached)
         uses: lukka/run-vcpkg@v11
@@ -73,13 +71,28 @@ jobs:
       - name: Show vcpkg.json
         run: cat vcpkg.json
 
-      - name: Configure CMake
-        run: >
-          cmake -B build -S . -G "${{ matrix.generator }}"
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DCMAKE_C_COMPILER=${{ matrix.cc }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Configure CMake (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake -B ${{github.workspace}}/build \
+          -DCMAKE_CXX_COMPILER=clang++-16 \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -GNinja
+
+      - name: Setup vcpkg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
+
+      - name: Configure CMake (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cmake -B ${{github.workspace}}/build `
+          -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake `
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
