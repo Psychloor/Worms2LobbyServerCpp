@@ -136,8 +136,8 @@ namespace worms_server
 			}
 			else
 			{
-				const auto bytes = reader.read_bytes(packet->data_length()).
-				                          value();
+				const auto bytes =
+					reader.read_bytes(packet->data_length()).value();
 				// Ensure we have at least one byte for null terminator
 				if (bytes.empty() || bytes.back() != std::byte{0})
 				{
@@ -149,8 +149,7 @@ namespace worms_server
 
 				const auto encoded = std::string(
 					reinterpret_cast<const char*>(bytes.data()),
-					bytes.size()
-					// - 1 // Subtract 1 to exclude null terminator
+					bytes.size() - 1 // Subtract 1 to exclude null terminator
 				);
 
 				// Add size check before decoding
@@ -199,13 +198,13 @@ namespace worms_server
 			const auto terminator_pos = std::ranges::find(
 				name_encoded_bytes,
 				static_cast<std::byte>(0));
-			if (terminator_pos == name_encoded_bytes.end())
+			/*if (terminator_pos == name_encoded_bytes.end())
 			{
 				return {
 					.status = net::packet_parse_status::error,
 					.error = "Invalid name: missing null terminator"
 				};
-			}
+			}*/
 
 			const std::string name_encoded(
 				reinterpret_cast<char const*>(name_encoded_bytes.data()),
@@ -265,76 +264,79 @@ namespace worms_server
 		writer.write_le(static_cast<uint32_t>(code_));
 		writer.write_le(get_flags_from_fields());
 
-		if (fields_.value0.has_value())
+		if (fields_.value0)
 		{
 			writer.write_le(*fields_.value0);
 		}
 
-		if (fields_.value1.has_value())
+		if (fields_.value1)
 		{
 			writer.write_le(*fields_.value1);
 		}
 
-		if (fields_.value2.has_value())
+		if (fields_.value2)
 		{
 			writer.write_le(*fields_.value2);
 		}
 
-		if (fields_.value3.has_value())
+		if (fields_.value3)
 		{
 			writer.write_le(*fields_.value3);
 		}
 
-		if (fields_.value4.has_value())
+		if (fields_.value4)
 		{
 			writer.write_le(*fields_.value4);
 		}
 
-		if (fields_.value10.has_value())
+		if (fields_.value10)
 		{
 			writer.write_le(*fields_.value10);
 		}
 
-		if (fields_.data.has_value())
+		if (fields_.data)
 		{
 			if (fields_.data.value().empty())
 			{
-				writer.write_le(0);
+				writer.write_le<uint32_t>(0);
 			}
 			else
 			{
 				const auto encoded = windows_1251::encode(fields_.data.value());
-				writer.write_le(static_cast<uint32_t>(encoded.size() + 1));
+				const auto encoded_bytes = std::as_bytes(std::span{encoded});
+				writer.write_le(static_cast<uint32_t>(encoded_bytes.size_bytes() + 1));
 
-				// Create a span after writing length
-				writer.write_bytes(std::as_bytes(std::span{encoded}));
-				writer.write(0);
+				writer.write_bytes(encoded_bytes);
+				writer.write(std::byte{0});
 			}
 		}
 
-		if (fields_.error.has_value())
+		if (fields_.error)
 		{
 			writer.write_le(*fields_.error);
 		}
 
-		if (fields_.name.has_value())
+		if (fields_.name)
 		{
 			const auto encoded = windows_1251::encode(fields_.name.value());
-			std::array<net::byte, max_name_length> buffer{
-				static_cast<net::byte>(0)
-			};
-			const auto length = std::min(encoded.size(), max_name_length);
+			const auto encoded_bytes = std::as_bytes(std::span{encoded});
+
+			// Name is a fixed size string of 20 chars
+			std::array<net::byte, max_name_length> buffer{};
+			std::ranges::fill(buffer, std::byte{0});
+
+			const auto length = std::min(encoded_bytes.size_bytes(), max_name_length);
 
 			std::copy_n(
-				std::as_bytes(std::span{encoded}).begin(),
+				std::begin(encoded_bytes),
 				length,
-				buffer.begin()
+				std::begin(buffer)
 			);
 
 			writer.write_bytes(buffer);
 		}
 
-		if (fields_.session_info.has_value())
+		if (fields_.session_info)
 		{
 			const auto& info = fields_.session_info.value();
 			write_session_info(writer, info);
