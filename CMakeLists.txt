@@ -94,7 +94,7 @@ set(SOURCES
 )
 
 # Dependencies
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED)
 
 # spdlog setup (from submodule)
 set(SPDLOG_USE_STD_FORMAT ON)
@@ -128,11 +128,11 @@ add_executable(${PROJECT_NAME} main.cpp
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${Boost_INCLUDE_DIRS}
         ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        Boost::system
         header_only
         spdlog::spdlog
 )
