@@ -6,8 +6,15 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
             CACHE STRING "")
 endif()
 
+if(DEFINED PROJECT_VERSION AND NOT "${PROJECT_VERSION}" STREQUAL "")
+    message(STATUS "Overriding project version with tag: ${PROJECT_VERSION}")
+    set(FINAL_PROJECT_VERSION "${PROJECT_VERSION}")
+else()
+    set(FINAL_PROJECT_VERSION "1.0.0")
+endif()
+
 project(WormsServer
-        VERSION 0.9.0
+        VERSION ${FINAL_PROJECT_VERSION}
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
@@ -87,6 +94,12 @@ if (NOT MSVC)
     endif ()
 endif ()
 
+# Git tag version in
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/version.hpp
+        @ONLY
+)
 
 # Header only libraries
 add_library(header_only INTERFACE ${LIBHEADERS})
@@ -103,12 +116,18 @@ add_executable(${PROJECT_NAME} main.cpp
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Boost::boost
         header_only
         spdlog::spdlog
+)
+
+# injected version compile if needed: std::cout << "Version: " << PROJECT_VERSION << "\n";
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PROJECT_VERSION="${PROJECT_VERSION}"
 )
 
 # Installation rules

@@ -1,0 +1,2 @@
+﻿#pragma once
+#define W2S_VERSION "@PROJECT_VERSION@"
