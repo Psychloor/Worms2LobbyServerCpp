@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include <boost/asio/ip/address_v4.hpp>
-#include <concurrentqueue.hpp>
+#include <concurrent_queue.hpp>
 
 namespace worms_server
 {

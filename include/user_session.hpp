@@ -7,7 +7,7 @@
 
 #include <boost/asio.hpp>
 
-#include "concurrentqueue.hpp"
+#include "concurrent_queue.hpp"
 #include "packet_buffers.hpp"
 
 namespace worms_server
