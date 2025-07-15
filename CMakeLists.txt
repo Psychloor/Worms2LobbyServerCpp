@@ -77,8 +77,8 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED)
 
 # spdlog setup
-add_subdirectory(third_party/spdlog)
 set(SPDLOG_USE_STD_FORMAT ON)
+add_subdirectory(third_party/spdlog)
 
 # Optimization flags for non-MSVC compilers
 if (NOT MSVC)
