@@ -5,8 +5,8 @@
 #ifndef PACKET_ROUTER_HPP
 #define PACKET_ROUTER_HPP
 
-#include <memory>
 #include <boost/asio.hpp>
+#include <memory>
 
 using boost::asio::awaitable;
 using boost::asio::use_awaitable;
@@ -19,12 +19,9 @@ namespace worms_server
 	class worms_packet;
 	enum class packet_code : std::uint32_t;
 
-	class packet_handler final : public std::enable_shared_from_this<
-			packet_handler>
+	class packet_handler final
 	{
 	public:
-		static std::shared_ptr<packet_handler> get_instance();
-
 		static awaitable<bool> handle_packet(
 			const std::shared_ptr<user>& client_user,
 			const std::shared_ptr<database>& database,

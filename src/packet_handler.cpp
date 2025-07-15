@@ -4,16 +4,14 @@
 
 #include "packet_handler.hpp"
 
+#include "boost/algorithm/string.hpp"
 #include "database.hpp"
+#include "game.hpp"
 #include "packet_code.hpp"
 #include "room.hpp"
-#include "user.hpp"
-#include "game.hpp"
-
-#include "worms_packet.hpp"
 #include "spdlog/spdlog.h"
-
-#include "boost/algorithm/string.hpp"
+#include "user.hpp"
+#include "worms_packet.hpp"
 
 namespace worms_server
 {
@@ -40,7 +38,6 @@ namespace worms_server
 		if (room_closed)
 		{
 			database->remove_room(room_id);
-			spdlog::info("Room {} closed", room_id);
 		}
 
 		const auto room_leave_packet_bytes = worms_packet::freeze(
@@ -332,7 +329,7 @@ namespace worms_server
 
 			// Notify other users about the join.
 			const auto packet_bytes = worms_packet::freeze(packet_code::join, {
-				.value2 = packet->fields().value2.value(),
+				.value2 = packet->fields().value2,
 				.value10 = client_user->get_id()
 			});
 			for (const auto& user : database->get_users())
@@ -537,12 +534,6 @@ namespace worms_server
 		co_return true;
 	}
 
-	std::shared_ptr<packet_handler> packet_handler::get_instance()
-	{
-		static auto instance = std::make_shared<packet_handler>();
-		return instance;
-	}
-
 	awaitable<bool> packet_handler::handle_packet(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
@@ -608,4 +599,5 @@ namespace worms_server
 
 		co_return false;
 	}
+
 }

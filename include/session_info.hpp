@@ -6,8 +6,8 @@
 #define SESSION_INFO_HPP
 
 #include <algorithm>
-#include <cstdint>
 #include <array>
+#include <cstdint>
 #include <iostream>
 #include <ostream>
 

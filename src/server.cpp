@@ -4,8 +4,8 @@
 
 #include "server.hpp"
 
-#include "user_session.hpp"
 #include "spdlog/spdlog.h"
+#include "user_session.hpp"
 
 
 namespace worms_server

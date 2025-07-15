@@ -48,7 +48,7 @@ namespace worms_server
 		mutable std::shared_mutex rooms_mutex_;
 		mutable std::shared_mutex games_mutex_;
 
-		std::atomic_uint32_t next_id_ = 0x1000;
+		std::atomic_uint32_t next_id_ = 0x1000U;
 		moodycamel::ConcurrentQueue<uint32_t> recycled_ids_;
 
 		std::unordered_map<uint32_t, std::shared_ptr<user>> users_;

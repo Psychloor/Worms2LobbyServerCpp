@@ -5,8 +5,8 @@
 #ifndef ROOM_HPP
 #define ROOM_HPP
 
-#include <string>
 #include <boost/asio/ip/address_v4.hpp>
+#include <string>
 
 #include "session_info.hpp"
 #include "spdlog/spdlog.h"

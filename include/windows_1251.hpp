@@ -2,9 +2,9 @@
 #ifndef WINDOWS_1251_HPP
 #define WINDOWS_1251_HPP
 
-#include <string>
 #include <array>
 #include <cstdint>
+#include <string>
 
 namespace worms_server
 {
@@ -49,7 +49,7 @@ namespace worms_server
         static size_t utf8_to_codepoint(const std::string& utf8_str,
                                         const size_t pos, uint32_t& codepoint)
         {
-            unsigned char first = utf8_str[pos];
+            unsigned char const first = utf8_str[pos];
 
             if ((first & 0x80) == 0)
             {
@@ -97,7 +97,7 @@ namespace worms_server
 
         static uint32_t windows1251_to_unicode(const unsigned char win1251_char)
         {
-            constexpr static const std::array<uint32_t, 128> conversion_table =
+            constexpr static std::array<uint32_t, 128> conversion_table =
             {
                 0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021,
                 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,

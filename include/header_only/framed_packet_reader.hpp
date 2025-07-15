@@ -27,7 +27,7 @@ namespace net
 
 		void append(const std::byte* data, const size_t length)
 		{
-			buffer_.insert(std::end(buffer_), data, data + length);
+			(void)buffer_.insert(std::end(buffer_), data, data + length);
 		}
 
 		[[nodiscard]] size_t available_bytes() const noexcept
@@ -62,20 +62,20 @@ namespace net
 
 			// Try to read a packet
 			auto result = worms_server::worms_packet::read_from(view);
-			if (!result)
+			if (!result.has_value())
 			{
 				return std::unexpected(result.error());
 			}
 
 			// Need more data
 			auto& optional_packet = *result;
-			if (!optional_packet)
+			if (!optional_packet.has_value())
 			{
 				return std::nullopt;
 			}
 
 			// Success - consume bytes
-			if (const size_t consumed = view.bytes_read(); consumed > 0)
+			if (const size_t consumed = view.bytes_read(); consumed > 0U)
 			{
 				if (consumed == buffer_.size())
 				{
@@ -83,13 +83,14 @@ namespace net
 				}
 				else
 				{
-					buffer_.erase(std::cbegin(buffer_),
-								  std::cbegin(buffer_) + static_cast<ptrdiff_t>(
-									  consumed));
+					(void)buffer_.erase(std::cbegin(buffer_),
+										std::cbegin(buffer_) + static_cast<
+											ptrdiff_t>(
+											consumed));
 				}
 
 				// Shrink buffer if it's too large
-				if (buffer_.capacity() > 16384 && buffer_.size() < (buffer_.
+				if (buffer_.capacity() > 16384U && buffer_.size() < (buffer_.
 					capacity() >> 2)) // Divide by 4
 				{
 					buffer_.shrink_to_fit();

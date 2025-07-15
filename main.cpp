@@ -1,27 +1,28 @@
 ﻿#include <iostream>
 #include <memory>
-#include <string>
-
-#include <vector>
 #include <ranges>
+#include <string>
+#include <vector>
 
 #include "header_only/packet_buffers.hpp"
 
 
-#include "spdlog/spdlog.h"
+#include "server.hpp"
+#include "user_session.hpp"
 #include "spdlog/async.h"
+#include "spdlog/spdlog.h"
 #include "spdlog/cfg/env.h"
 #include "spdlog/sinks/daily_file_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "server.hpp"
-#include "user_session.hpp"
 
 
 void initialize_logging()
 {
 	spdlog::init_thread_pool(8192, 1); // queue size, number of threads
-	const auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-	const auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/worms_server.log", 0, 0, true);
+	const auto console_sink = std::make_shared<
+		spdlog::sinks::stdout_color_sink_mt>();
+	const auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+		"logs/worms_server.log", 0, 0, true);
 
 	std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
 	const auto logger = std::make_shared<spdlog::async_logger>(
@@ -48,11 +49,13 @@ void initialize_logging()
 	});
 }
 
-bool parse_command_line_arguments(const int argc, char** argv, uint16_t& port, size_t& max_connections,
+bool parse_command_line_arguments(const int argc, char** argv, uint16_t& port,
+								  size_t& max_connections,
 								  size_t& max_threads)
 {
 	auto args = std::vector<std::string>(argv, argv + argc);
-	for (const auto args_slide = std::ranges::slide_view(args, 2); const auto& arg : args_slide)
+	for (const auto args_slide = std::ranges::slide_view(args, 2); const auto&
+		 arg : args_slide)
 	{
 		if (arg[0] == "-p" || arg[0] == "--port")
 		{
@@ -79,12 +82,15 @@ bool parse_command_line_arguments(const int argc, char** argv, uint16_t& port, s
 			max_threads = std::stoi(arg[1]);
 			if (max_threads < 1)
 			{
-				std::cerr << "Invalid thread count, defaulting to " << std::thread::hardware_concurrency() << "\n";
+				std::cerr << "Invalid thread count, defaulting to " <<
+					std::thread::hardware_concurrency() << "\n";
 				max_threads = std::thread::hardware_concurrency();
 			}
 			else if (max_threads > std::thread::hardware_concurrency())
 			{
-				std::cerr << "Thread count cannot be higher than the number of cores, defaulting to " <<
+				std::cerr <<
+					"Thread count cannot be higher than the number of cores, defaulting to "
+					<<
 					std::thread::hardware_concurrency()
 					<< "\n";
 				max_threads = std::thread::hardware_concurrency();
@@ -97,7 +103,8 @@ bool parse_command_line_arguments(const int argc, char** argv, uint16_t& port, s
 				<< "Options:\n"
 				<< "  -p, --port <port>			Port to listen on (default: 17000)\n"
 				<< "  -c, --connections <count> Maximum number of connections (default: 10 000)\n"
-				<< "  -t, --threads <count>		Maximum number of threads (default: " <<
+				<< "  -t, --threads <count>		Maximum number of threads (default: "
+				<<
 				std::thread::hardware_concurrency() << ")\n"
 				<< "  -h, --help				Print this help message\n"
 				<< std::endl;
@@ -115,7 +122,9 @@ int main(const int argc, char** argv)
 
 	initialize_logging();
 
-	if (parse_command_line_arguments(argc, argv, port, max_connections, max_threads)) return 0;
+	if (parse_command_line_arguments(argc, argv, port, max_connections,
+									 max_threads))
+		return 0;
 
 	try
 	{

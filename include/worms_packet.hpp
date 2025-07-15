@@ -1,14 +1,14 @@
 ﻿#ifndef WORMS_PACKET_HPP
 #define WORMS_PACKET_HPP
 
-#include <string>
-#include <optional>
 #include <cstdint>
+#include <optional>
+#include <string>
 
 #include "packet_code.hpp"
+#include "header_only/packet_buffers.hpp"
 #include "packet_flags.hpp"
 #include "session_info.hpp"
-#include "header_only/packet_buffers.hpp"
 
 namespace worms_server
 {

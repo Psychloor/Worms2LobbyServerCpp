@@ -4,13 +4,14 @@
 
 #ifndef RESETTABLE_TIMEOUT_HPP
 #define RESETTABLE_TIMEOUT_HPP
+
 #include <boost/asio.hpp>
 
 class resettable_timeout
 {
 public:
-	explicit resettable_timeout(boost::asio::any_io_executor ex)
-		: _timer(std::move(ex)) {}
+	explicit resettable_timeout(const boost::asio::any_io_executor& ex)
+		: _timer(ex) {}
 
 	void start(const std::chrono::steady_clock::duration duration)
 	{
@@ -24,7 +25,7 @@ public:
 
 	boost::asio::awaitable<bool> wait()
 	{
-		boost::system::error_code ec;
+		constexpr boost::system::error_code ec;
 		co_await _timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 		co_return !ec; // true if the timer expired, false if canceled
 	}

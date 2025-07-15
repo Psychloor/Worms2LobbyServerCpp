@@ -2,18 +2,18 @@
 #ifndef PACKET_BUFFERS_HPP
 #define PACKET_BUFFERS_HPP
 
-#include <vector>
-#include <span>
-#include <optional>
+#include <bit>
 #include <cstddef>
 #include <cstring>
-#include <bit>
 #include <expected>
 #include <iterator>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 // -----------------------------------------------------------------------------
 // Packet buffer utilities for modern C++23/26 async networking.
