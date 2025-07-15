@@ -81,7 +81,7 @@ set(SOURCES
 )
 
 # Dependencies
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 # spdlog setup
 set(SPDLOG_USE_STD_FORMAT ON)
@@ -121,6 +121,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Boost::boost
+        Boost::system
         header_only
         spdlog::spdlog
 )

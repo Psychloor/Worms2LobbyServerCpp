@@ -11,6 +11,7 @@ jobs:
   build:
     name: Build & Test (${{ matrix.os }} - ${{ matrix.cc }})
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -18,32 +19,35 @@ jobs:
         build_type: [Release]
         include:
           - os: ubuntu-latest
-            cc: gcc
-            cxx: g++
-          - os: ubuntu-latest
-            cc: clang
-            cxx: clang++
+            cc: clang-16  # Specify the version explicitly
+            cxx: clang++-16  # Specify the version explicitly
+            generator: Ninja
           - os: windows-latest
             cc: cl
             cxx: cl
+            generator: "Visual Studio 17 2022"
+
 
     steps:
-      - name: Install build dependencies (Ubuntu)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y build-essential clang ninja-build
-
-
-      - name: Checkout repository (with submodules)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Inject Git tag version into vcpkg.json
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          TAG_VERSION=${GITHUB_REF##*/}
-          jq ". + {\"version-string\": \"$TAG_VERSION\"}" vcpkg.json > vcpkg.temp.json
-          mv vcpkg.temp.json vcpkg.json
+      - name: Cache CMake files
+        uses: actions/cache@v3
+        with:
+          path: |
+            build/_deps
+            build/CMakeCache.txt
+            build/CMakeFiles
+          key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-
+
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang ninja-build jq
 
       - name: Setup vcpkg (cached)
         uses: lukka/run-vcpkg@v11
@@ -52,21 +56,28 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
           runVcpkgInstall: true
 
+      - name: Inject version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION=${GITHUB_REF##*/v}
+          jq ". + {\"version-string\": \"$TAG_VERSION\"}" vcpkg.json > vcpkg.temp.json
+          mv vcpkg.temp.json vcpkg.json
+
+      - name: Show vcpkg.json
+        run: cat vcpkg.json
+
       - name: Configure CMake
         run: >
-          cmake -B build
-                -S .
-                -G Ninja
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-                -DCMAKE_C_COMPILER=${{ matrix.cc }}
-                -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
-                -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-                -DPROJECT_VERSION=$TAG_VERSION
+          cmake -B build -S . -G "${{ matrix.generator }}"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_C_COMPILER=${{ matrix.cc }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
 
-      - name: Run tests
+      - name: Test
         working-directory: build
         run: ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
@@ -75,13 +86,13 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -95,7 +106,7 @@ jobs:
       - name: Configure (Release)
         run: >
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-                -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build build --config Release
