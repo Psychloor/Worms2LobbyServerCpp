@@ -5,8 +5,8 @@
 #ifndef PACKET_ROUTER_HPP
 #define PACKET_ROUTER_HPP
 
-#include <boost/asio.hpp>
 #include <memory>
+#include <boost/asio.hpp>
 
 #include "worms_packet.hpp"
 

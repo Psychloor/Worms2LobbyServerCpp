@@ -167,19 +167,23 @@ namespace worms_server
 		// Keep ref alive for the full coroutine lifetime
 		auto self = shared_from_this();
 
-		co_spawn(socket_.get_executor(), [self = this]() -> awaitable<void>
-		{
-			co_await self->writer();
-		}, detached);
+		co_spawn(socket_.get_executor(),
+				 [self = shared_from_this()]() -> awaitable<void>
+				 {
+					 co_await self->writer();
+				 }, detached);
 
-		user_ = co_await handle_login();
-		if (user_ == nullptr)
+		auto user = co_await handle_login();
+		if (user == nullptr)
 		{
 			spdlog::error("Failed to login");
 			co_return;
 		}
 
-		spdlog::info("User {} logged in", user_->get_name());
+		user_.store(std::move(user), std::memory_order::release);
+
+		spdlog::info("User {} logged in",
+					 user_.load(std::memory_order::relaxed)->get_name());
 
 		co_await handle_session();
 
@@ -350,7 +354,9 @@ namespace worms_server
 
 					if (read == 0 || ec == error::eof)
 					{
-						spdlog::info("User {} disconnected", user_->get_name());
+						spdlog::info("User {} disconnected",
+									 user_.load(std::memory_order::relaxed)->
+										   get_name());
 						break;
 					}
 					if (ec)
@@ -372,12 +378,14 @@ namespace worms_server
 						if (packet.status == net::packet_parse_status::error)
 						{
 							// Invalid data
-							spdlog::error("Parse error: {}", packet.error.value_or(""));
+							spdlog::error("Parse error: {}",
+										  packet.error.value_or(""));
 							co_return;
 						}
 
 						if (!co_await packet_handler::handle_packet(
-							user_, database, std::move(*packet.data)))
+							user_.load(std::memory_order::relaxed), database,
+							std::move(*packet.data)))
 						{
 							spdlog::warn(
 								"Packet handler failed or returned false");
@@ -396,19 +404,6 @@ namespace worms_server
 		catch (const std::exception& e)
 		{
 			spdlog::error("Fatal error in User Session: {}", e.what());
-		}
-
-		// Ensure the socket is closed
-		try
-		{
-			if (socket_.is_open())
-			{
-				socket_.close();
-			}
-		}
-		catch (const std::exception& e)
-		{
-			spdlog::error("Error closing socket: {}", e.what());
 		}
 
 		co_return;

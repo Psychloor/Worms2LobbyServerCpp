@@ -37,7 +37,10 @@ namespace worms_server
 
 		std::atomic<bool> is_shutting_down_{false};
 		ip::tcp::socket socket_;
-		std::shared_ptr<user> user_;
+
+		//std::shared_ptr<user> user_;
+		std::atomic<std::shared_ptr<user>> user_;
+
 		steady_timer timer_;
 		moodycamel::ConcurrentQueue<net::shared_bytes_ptr> packets_;
 	};
