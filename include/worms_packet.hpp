@@ -6,7 +6,7 @@
 #include <string>
 
 #include "packet_code.hpp"
-#include "header_only/packet_buffers.hpp"
+#include "packet_buffers.hpp"
 #include "packet_flags.hpp"
 #include "session_info.hpp"
 
@@ -39,8 +39,7 @@ namespace worms_server
 
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
-		[[nodiscard]] static std::expected<
-			std::optional<std::shared_ptr<worms_packet>>, std::string>
+		[[nodiscard]] static net::deserialization_result<std::shared_ptr<worms_packet>, std::string>
 		read_from(
 			net::packet_reader& reader);
 

@@ -15,6 +15,7 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include "framed_deserialization_result.hpp"
 #include "header_only/packet_buffers.hpp"
 
 namespace worms_server
@@ -66,7 +67,7 @@ namespace worms_server
 			padding.fill(static_cast<net::byte>(0));
 		}
 
-		static std::expected<std::optional<session_info>, std::string>
+		static net::deserialization_result<session_info, std::string>
 		read_from(net::packet_reader& reader);
 	};
 
@@ -114,9 +115,7 @@ namespace worms_server
 		return true;
 	}
 
-	// Following tokio's framed codec logic. Empty optional means more bytes needed;
-	// an Error result is invalid data
-	inline std::expected<std::optional<session_info>, std::string>
+	inline net::deserialization_result<session_info, std::string>
 	session_info::read_from(net::packet_reader& reader)
 	{
 		session_info info;
@@ -140,10 +139,16 @@ namespace worms_server
 
 		if (!verify_session_info(info))
 		{
-			return std::unexpected(std::string{"Invalid session info"});
+			return {
+				.status = net::packet_parse_status::error,
+				.error = "Invalid session info"
+			};
 		}
 
-		return info;
+		return {
+			.status = net::packet_parse_status::complete,
+			.data = std::make_optional(info)
+		};
 	};
 }
 

@@ -11,6 +11,7 @@ set(LIBHEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/resettable_timeout.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/framed_packet_reader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/framed_deserialization_result.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/concurrentqueue.hpp
 )
 

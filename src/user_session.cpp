@@ -249,21 +249,20 @@ namespace worms_server
 
 			auto packet_reader = net::packet_reader(incoming);
 			auto login_packet = worms_packet::read_from(packet_reader);
-			if (!login_packet)
+			if (login_packet.status == net::packet_parse_status::error)
 			{
 				spdlog::error("Error reading login packet: {}",
-							  login_packet.error());
+							  login_packet.error.value_or(""));
 				co_return nullptr;
 			}
 
-			const auto& optional_packet = login_packet.value();
-			if (!optional_packet)
+			if (login_packet.status == net::packet_parse_status::partial)
 			{
 				spdlog::error("Login packet is empty");
 				co_return nullptr;
 			}
 
-			const auto& login_info = *optional_packet;
+			const auto& login_info = login_packet.data.value();
 			if (login_info->code() != packet_code::login)
 			{
 				spdlog::error("Invalid packet code in login packet");
@@ -363,23 +362,22 @@ namespace worms_server
 					reader.append(incoming.data(), read);
 					while (true)
 					{
-						const auto result = reader.try_read_packet();
-						if (!result.has_value())
-						{
-							// Invalid data
-							spdlog::error("Parse error: {}", result.error());
-							co_return;
-						}
-
-						const auto& maybe_packet = result.value();
-						if (!maybe_packet)
+						const auto packet = reader.try_read_packet();
+						if (packet.status == net::packet_parse_status::partial)
 						{
 							// Needs more data
 							break;
 						}
 
+						if (packet.status == net::packet_parse_status::error)
+						{
+							// Invalid data
+							spdlog::error("Parse error: {}", packet.error.value_or(""));
+							co_return;
+						}
+
 						if (!co_await packet_handler::handle_packet(
-							user_, database, *maybe_packet))
+							user_, database, std::move(*packet.data)))
 						{
 							spdlog::warn(
 								"Packet handler failed or returned false");
