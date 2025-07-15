@@ -103,10 +103,11 @@ jobs:
           tar -czf artifacts/WormsServer-${{ env.VERSION }}-linux.tar.gz -C artifacts WormsServer
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: WormsServer-${{ matrix.os }}
           path: artifacts/*
+          retention-days: 5
 
   release:
     needs: build
@@ -115,9 +116,10 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
