@@ -1,4 +1,4 @@
-name: CMake-vcpkg-build-and-release
+﻿name: CMake Build and Release
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    name: Build & Test (${{ matrix.os }} - ${{ matrix.cc }})
+    name: ${{ matrix.os }} ${{ matrix.cc }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -23,17 +23,15 @@ jobs:
           - os: ubuntu-latest
             cc: clang-16
             cxx: clang++-16
-            generator: Ninja
           - os: windows-latest
             cc: cl
             cxx: cl
-            generator: "Visual Studio 17 2022"
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-          fetch-depth: 0  # Needed for version tagging
+          fetch-depth: 0
 
       - name: Get version from tag
         id: get_version
@@ -69,9 +67,9 @@ jobs:
           CXX: clang++-16
           TAG_VERSION: ${{ env.VERSION }}
         run: |
-          cmake -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+          cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -GNinja
 
       - name: Configure CMake (Windows)
@@ -79,32 +77,53 @@ jobs:
         env:
           TAG_VERSION: ${{ env.VERSION }}
         run: |
-          cmake -B ${{github.workspace}}/build `
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} `
-          -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake
+          cmake -B build `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Test
-        working-directory: ${{github.workspace}}/build
-        run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+        working-directory: build
+        run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir artifacts
+          copy build\${{ env.BUILD_TYPE }}\WormsServer.exe artifacts\
+          7z a artifacts\WormsServer-${{ env.VERSION }}-windows.zip ./artifacts/WormsServer.exe
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p artifacts
+          cp build/WormsServer artifacts/
+          tar -czf artifacts/WormsServer-${{ env.VERSION }}-linux.tar.gz -C artifacts WormsServer
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: WormsServer-${{ matrix.os }}
+          path: artifacts/*
 
   release:
-    name: Create Release
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
         with:
-          fetch-depth: 0
+          path: artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
+          files: artifacts/**/*
           draft: false
           prerelease: false
           generate_release_notes: true
