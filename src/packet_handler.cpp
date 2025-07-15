@@ -4,11 +4,11 @@
 
 #include "packet_handler.hpp"
 
-#include "boost/algorithm/string.hpp"
 #include "database.hpp"
 #include "game.hpp"
 #include "packet_code.hpp"
 #include "room.hpp"
+#include "string_utils.hpp"
 #include "spdlog/spdlog.h"
 #include "user.hpp"
 #include "worms_packet.hpp"
@@ -16,7 +16,7 @@
 namespace worms_server
 {
     static awaitable<void> leave_room(const std::shared_ptr<room>& room,
-                                      uint32_t left_id)
+        uint32_t left_id)
     {
         const auto database = database::get_instance();
         const auto users = database->get_users();
@@ -24,18 +24,15 @@ namespace worms_server
 
         const bool room_closed = room != nullptr
             && !std::ranges::any_of(users,
-                                    [left_id, room_id](const auto& user)
-                                    {
-                                        return user->get_id() != left_id && user
-                                            ->get_room_id() ==
-                                            room_id;
-                                    })
+                [left_id, room_id](const auto& user)
+                {
+                    return user->get_id() != left_id && user->get_room_id() == room_id;
+                })
             && !std::ranges::any_of(database->get_games(),
-                                    [left_id, room_id](const auto& game)
-                                    {
-                                        return game->get_id() != left_id && game
-                                            ->get_room_id() == room_id;
-                                    });
+                [left_id, room_id](const auto& game)
+                {
+                    return game->get_id() != left_id && game->get_room_id() == room_id;
+                });
 
         if (room_closed)
         {
@@ -44,9 +41,7 @@ namespace worms_server
 
         const auto room_leave_packet_bytes = worms_packet::freeze(
             packet_code::leave,
-            {
-                .value2 = room_id, .value10 = left_id
-            });
+            {.value2 = room_id, .value10 = left_id});
         const auto room_close_packet_bytes = worms_packet::freeze(
             packet_code::close,
             {.value10 = room_id});
@@ -76,9 +71,8 @@ namespace worms_server
         const std::shared_ptr<database>& database,
         const worms_packet_ptr& packet)
     {
-        if (packet->fields().value0.value_or(0) != client_user->get_id() || !
-            packet->fields().value3 || !
-            packet->fields().data)
+        if (packet->fields().value0.value_or(0) != client_user->get_id() || !packet->fields().value3 || !packet->
+            fields().data)
         {
             spdlog::error("Invalid packet data\n");
             co_return false;
@@ -89,8 +83,7 @@ namespace worms_server
         const auto& message = packet->fields().data.value();
         const auto client_id = client_user->get_id();
 
-        if (message.starts_with(
-            std::format("GRP:[ {} ]  ", client_user->get_name())))
+        if (message.starts_with(std::format("GRP:[ {} ]  ", client_user->get_name())))
         {
             // Check if the user can access the room.
             if (client_room_id == target_id)
@@ -105,8 +98,7 @@ namespace worms_server
 
                 for (const auto& user : database->get_users())
                 {
-                    if (user->get_room_id() == client_room_id && user->get_id()
-                        != client_id)
+                    if (user->get_room_id() == client_room_id && user->get_id() != client_id)
                     {
                         user->send_packet(packet_bytes);
                     }
@@ -115,14 +107,14 @@ namespace worms_server
                 // Notify sender
                 client_user->send_packet(
                     worms_packet::freeze(packet_code::chat_room_reply,
-                                         {.error = 0}));
+                        {.error = 0}));
                 co_return true;
             }
 
             // Notify sender
             client_user->send_packet(
                 worms_packet::freeze(packet_code::chat_room_reply,
-                                     {.error = 1}));
+                    {.error = 1}));
             co_return true;
         }
 
@@ -134,21 +126,19 @@ namespace worms_server
             {
                 client_user->send_packet(
                     worms_packet::freeze(packet_code::chat_room_reply,
-                                         {.error = 1}));
+                        {.error = 1}));
                 co_return true;
             }
 
             // Notify Target
             target_user->send_packet(worms_packet::freeze(
                 packet_code::chat_room,
-                {
-                    .value0 = client_id, .value3 = target_id, .data = message
-                }));
+                {.value0 = client_id, .value3 = target_id, .data = message}));
 
             // Notify Sender
             client_user->send_packet(
                 worms_packet::freeze(packet_code::chat_room_reply,
-                                     {.error = 1}));
+                    {.error = 1}));
             co_return true;
         }
 
@@ -188,8 +178,7 @@ namespace worms_server
         const worms_packet_ptr& packet)
     {
         if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.
-            value_or(0) != client_user->
-            get_room_id())
+                                                                value_or(0) != client_user->get_room_id())
         {
             spdlog::error("List Users: Invalid packet data");
             co_return false;
@@ -224,8 +213,7 @@ namespace worms_server
         const worms_packet_ptr& packet)
     {
         if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.
-            value_or(0) != client_user->
-            get_room_id())
+                                                                value_or(0) != client_user->get_room_id())
         {
             spdlog::error("List Games: Invalid packet data");
             co_return false;
@@ -260,31 +248,30 @@ namespace worms_server
         const worms_packet_ptr& packet)
     {
         if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.
-            value_or(0) != 0 || packet->fields().
-                                        data.
-                                        value_or("").empty() || packet->fields()
-            .name.value_or("").empty() || !packet->fields().session_info.
-                                                   has_value())
+                                                                value_or(0) != 0 || packet->fields().data.value_or("").
+            empty() ||
+            packet->fields().name.value_or("").empty() || !packet->fields().
+                                                                   session_info.has_value())
         {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Check if the room name is valid is not already taken.
+        const auto requested_room_name = packet->fields().name.value();
         if (std::ranges::any_of(database->get_rooms(),
-                                [client_name = client_user->get_name()](
-                                const auto& room) -> bool
-                                {
-                                    return boost::iequals(
-                                        room->get_name(),
-                                        client_name);
-                                }))
+            [requested_room_name](const auto& room) -> bool
+            {
+                return equals_case_insensitive(
+                    requested_room_name,
+                    room->get_name());
+            }))
         {
             client_user->send_packet(worms_packet::freeze(
                 packet_code::create_room_reply,
                 {.value1 = 0, .error = 1}));
 
-            co_return false;
+            co_return true;
         }
 
         const auto room_id = database::get_next_id();
@@ -321,24 +308,24 @@ namespace worms_server
     }
 
     static awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
-                                   const std::shared_ptr<database>& database,
-                                   const worms_packet_ptr& packet)
+        const std::shared_ptr<database>& database,
+        const worms_packet_ptr& packet)
     {
-        if (!packet->fields().value2 || packet->fields().value10.
-                                                value_or(0) != client_user->
-            get_id())
+        if (!packet->fields().value2 || packet->fields().value10.value_or(0) !=
+            client_user->get_id())
         {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Require a valid room or game ID.
+        // Check rooms
         if (std::ranges::any_of(database->get_rooms(),
-                                [join_id = packet->fields().value2.value()](
-                                const auto& room) -> bool
-                                {
-                                    return room->get_id() == join_id;
-                                }))
+            [join_id = packet->fields().value2.value()](
+            const auto& room) -> bool
+            {
+                return room->get_id() == join_id;
+            }))
         {
             client_user->set_room_id(packet->fields().value2.value());
 
@@ -359,14 +346,15 @@ namespace worms_server
             co_return true;
         }
 
+        // Check games
         if (std::ranges::any_of(database->get_games(),
-                                [join_id = packet->fields().value2.value(),
-                                    room_id = client_user->get_room_id()](
-                                const auto& game) -> bool
-                                {
-                                    return game->get_id() == join_id && game->
-                                        get_room_id() == room_id;
-                                }))
+            [join_id = packet->fields().value2.value(),
+                room_id = client_user->get_room_id()](
+            const auto& game) -> bool
+            {
+                return game->get_id() == join_id && game->
+                    get_room_id() == room_id;
+            }))
         {
             // Notify other users about the join.
             const auto packet_bytes = worms_packet::freeze(packet_code::join,
@@ -385,14 +373,15 @@ namespace worms_server
             co_return true;
         }
 
+        // Reply to joiner. (failed to find)
         client_user->send_packet(
             worms_packet::freeze(packet_code::join_reply, {.error = 1}));
         co_return true;
     }
 
     static awaitable<bool> on_leave(const std::shared_ptr<user>& client_user,
-                                    const std::shared_ptr<database>& database,
-                                    const worms_packet_ptr& packet)
+        const std::shared_ptr<database>& database,
+        const worms_packet_ptr& packet)
     {
         if (packet->fields().value10.value_or(0) != client_user->get_id() || !
             packet->fields().value2)
@@ -405,7 +394,7 @@ namespace worms_server
         if (packet->fields().value2.value() == client_user->get_room_id())
         {
             co_await leave_room(database->get_room(client_user->get_room_id()),
-                                client_user->get_id());
+                client_user->get_id());
             client_user->set_room_id(0);
 
             // Reply to leaver.
@@ -423,8 +412,8 @@ namespace worms_server
     }
 
     static awaitable<bool> on_close(const std::shared_ptr<user>& client_user,
-                                    const std::shared_ptr<database>& database,
-                                    const worms_packet_ptr& packet)
+        const std::shared_ptr<database>& database,
+        const worms_packet_ptr& packet)
     {
         if (!packet->fields().value10)
         {
@@ -445,12 +434,11 @@ namespace worms_server
         const std::shared_ptr<database>& database,
         const worms_packet_ptr& packet)
     {
-        if (packet->fields().value1.value_or(1) != 0
-            || packet->fields().value2.value_or(0) != client_user->get_room_id()
-            || packet->fields().value4.value_or(0) != 0x800
-            || !packet->fields().data
-            || !packet->fields().name
-            || !packet->fields().session_info)
+        if (packet->fields().value1.value_or(1) != 0 || packet->fields().value2.
+                                                                value_or(0) != client_user->get_room_id() || packet->
+            fields().value4
+           .value_or(0) != 0x800 || !packet->fields().data || !packet->fields().
+                                                                       name || !packet->fields().session_info)
         {
             spdlog::error("Invalid packet data");
             co_return false;
@@ -497,9 +485,9 @@ namespace worms_server
             }
 
             // Send reply to host;
-            client_user->send_packet(
-                worms_packet::freeze(packet_code::create_game_reply,
-                                     {.value1 = game_id, .error = 0}));
+            client_user->send_packet(worms_packet::freeze(
+                packet_code::create_game_reply,
+                {.value1 = game_id, .error = 0}));
         }
 
 
@@ -509,7 +497,8 @@ namespace worms_server
         client_user->send_packet(worms_packet::freeze(packet_code::chat_room,
             {
                 .value0 = client_user->get_id(),
-                .value3 = client_user->get_room_id(), .data =
+                .value3 = client_user->get_room_id(),
+                .data =
                 "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode"
             }));
 
@@ -523,22 +512,21 @@ namespace worms_server
     {
         if (!packet->fields().value0)
         {
-            std::cerr << "Invalid packet data\n";
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Require valid game ID and user to be in appropriate room.
         const auto games = database->get_games();
-        const auto it = std::ranges::find_if(
-            games,
-            [game_id = packet->fields().value0.value(), room_id = client_user
-                ->
-                get_room_id()](
+        const auto it = std::ranges::find_if(games,
+            [game_id = packet->fields().value0.
+                               value(), room_id = client_user
+              ->get_room_id()](
             const auto& game) -> bool
             {
-                return game->get_id() == game_id && game->get_room_id() ==
-                    room_id;
+                return game->get_id() ==
+                    game_id && game->
+                    get_room_id() == room_id;
             });
 
         if (it == games.end())
@@ -621,7 +609,7 @@ namespace worms_server
 
             default:
                 spdlog::error("Unknown packet code: {}",
-                              static_cast<uint32_t>(packet->code()));
+                    static_cast<uint32_t>(packet->code()));
                 break;
         }
 

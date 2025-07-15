@@ -15,7 +15,7 @@
 namespace worms_server
 {
     net::shared_bytes_ptr worms_packet::freeze(const packet_code code,
-                                               packet_fields fields)
+        packet_fields fields)
     {
         net::packet_writer writer;
         worms_packet{code, std::move(fields)}.write_to(writer);
@@ -23,13 +23,11 @@ namespace worms_server
     }
 
     worms_packet::worms_packet(const packet_code code, packet_fields fields) :
-        code_(code), flags_(0),
-        fields_(std::move(fields))
+    code_(code), flags_(0), fields_(std::move(fields))
     {}
 
     net::deserialization_result<worms_packet_ptr, std::string>
-    worms_packet::read_from(
-        net::packet_reader& reader)
+    worms_packet::read_from(net::packet_reader& reader)
     {
         if (!reader.can_read(sizeof(uint32_t) * 2))
         {
@@ -115,7 +113,7 @@ namespace worms_server
                 return {
                     .status = net::packet_parse_status::error,
                     .error = std::format("Data length is too big: {}",
-                                         data_length)
+                        data_length)
                 };
             }
 
@@ -136,8 +134,8 @@ namespace worms_server
             }
             else
             {
-                const auto bytes =
-                    reader.read_bytes(packet->data_length()).value();
+                const auto bytes = reader.read_bytes(packet->data_length()).
+                                          value();
                 // Ensure we have at least one byte for null terminator
                 if (bytes.empty() || bytes.back() != std::byte{0})
                 {
@@ -156,7 +154,8 @@ namespace worms_server
                 if (encoded.length() > max_data_length)
                 {
                     return {
-                        .status = net::packet_parse_status::error, .error =
+                        .status = net::packet_parse_status::error,
+                        .error =
                         "String too long: encoded data exceeds maximum length"
                     };
                 }
@@ -167,7 +166,8 @@ namespace worms_server
                 if (decoded.length() > max_data_length)
                 {
                     return {
-                        .status = net::packet_parse_status::error, .error =
+                        .status = net::packet_parse_status::error,
+                        .error =
                         "String too long: decoded data exceeds maximum length"
                     };
                 }
@@ -198,23 +198,16 @@ namespace worms_server
             const auto terminator_pos = std::ranges::find(
                 name_encoded_bytes,
                 static_cast<std::byte>(0));
-            /*if (terminator_pos == name_encoded_bytes.end())
-            {
-                return {
-                    .status = net::packet_parse_status::error,
-                    .error = "Invalid name: missing null terminator"
-                };
-            }*/
 
             const std::string name_encoded(
                 reinterpret_cast<char const*>(name_encoded_bytes.data()),
-                std::distance(name_encoded_bytes.begin(), terminator_pos)
-            );
+                std::distance(std::begin(name_encoded_bytes), terminator_pos));
 
             if (name_encoded.length() > max_name_length)
             {
                 return {
-                    .status = net::packet_parse_status::error, .error =
+                    .status = net::packet_parse_status::error,
+                    .error =
                     "Name too long: encoded name exceeds maximum length"
                 };
             }
@@ -224,7 +217,8 @@ namespace worms_server
             if (name_decoded.length() > max_name_length)
             {
                 return {
-                    .status = net::packet_parse_status::error, .error =
+                    .status = net::packet_parse_status::error,
+                    .error =
                     "Name too long: decoded name exceeds maximum length"
                 };
             }
@@ -327,13 +321,9 @@ namespace worms_server
             std::ranges::fill(buffer, std::byte{0});
 
             const auto length = std::min(encoded_bytes.size_bytes(),
-                                         max_name_length);
+                max_name_length);
 
-            std::copy_n(
-                std::begin(encoded_bytes),
-                length,
-                std::begin(buffer)
-            );
+            std::copy_n(std::begin(encoded_bytes), length, std::begin(buffer));
 
             writer.write_bytes(buffer);
         }

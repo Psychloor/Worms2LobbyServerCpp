@@ -1,5 +1,4 @@
-﻿
-#ifndef WINDOWS_1251_HPP
+﻿#ifndef WINDOWS_1251_HPP
 #define WINDOWS_1251_HPP
 
 #include <array>
@@ -47,8 +46,8 @@ namespace worms_server
 
     private:
         static size_t utf8_to_codepoint(const std::string& utf8_str,
-                                        const size_t pos,
-                                        uint32_t& codepoint)
+            const size_t pos,
+            uint32_t& codepoint)
         {
             unsigned char const first = utf8_str[pos];
 
@@ -66,9 +65,8 @@ namespace worms_server
             if ((first & 0xF0) == 0xE0)
             {
                 if (pos + 2 >= utf8_str.length()) return 0;
-                codepoint = ((first & 0x0F) << 12) |
-                    ((utf8_str[pos + 1] & 0x3F) << 6) |
-                    (utf8_str[pos + 2] & 0x3F);
+                codepoint = ((first & 0x0F) << 12) | ((utf8_str[pos + 1] & 0x3F)
+                    << 6) | (utf8_str[pos + 2] & 0x3F);
                 return 3;
             }
             return 0;
@@ -98,8 +96,7 @@ namespace worms_server
 
         static uint32_t windows1251_to_unicode(const unsigned char win1251_char)
         {
-            constexpr static std::array<uint32_t, 128> conversion_table =
-            {
+            constexpr static std::array<uint32_t, 128> conversion_table = {
                 0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021,
                 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
                 0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,

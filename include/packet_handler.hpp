@@ -16,19 +16,19 @@ using namespace boost::asio;
 
 namespace worms_server
 {
-	class user;
-	class database;
-	class worms_packet;
-	enum class packet_code : std::uint32_t;
+    class user;
+    class database;
+    class worms_packet;
+    enum class packet_code : std::uint32_t;
 
-	class packet_handler final
-	{
-	public:
-		static awaitable<bool> handle_packet(
-			const std::shared_ptr<user>& client_user,
-			const std::shared_ptr<database>& database,
-			const worms_packet_ptr& packet);
-	};
+    class packet_handler final
+    {
+    public:
+        static awaitable<bool> handle_packet(
+            const std::shared_ptr<user>& client_user,
+            const std::shared_ptr<database>& database,
+            const worms_packet_ptr& packet);
+    };
 }
 
 #endif //PACKET_ROUTER_HPP
