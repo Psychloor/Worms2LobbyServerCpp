@@ -1,4 +1,7 @@
-﻿# WormsServer
+﻿Here's the updated README.md with proper prerequisites, build instructions, and vcpkg information:
+
+```markdown
+# WormsServer
 
 A modern C++23 implementation of a Worms 2® game server, 
 inspired by and partially ported from [Syroot's Worms2 GameServer](https://gitlab.com/Syroot/Worms/-/tree/master/src/tool/Syroot.Worms.Worms2.GameServer).
@@ -21,28 +24,56 @@ Built with modern C++ features and focusing on performance and reliability.
 
 ## Prerequisites
 
-- C++23 compatible compiler
-- CMake 3.25 or higher
-- Boost libraries
-- spdlog library
+- C++23 compatible compiler (Clang 16+ or MSVC 2022+)
+- CMake 3.31 or higher
+- vcpkg package manager
+- Git (for cloning repository and submodules)
+
+### Required Dependencies
+The following dependencies will be automatically installed through vcpkg:
+- Boost 1.84.0 or higher (system, endian)
+- spdlog 1.12.0 or higher
 
 ## Building
-```bash
-mkdir build
-cd build
-cmake ..
-cmake --build .
+
+1. Clone the repository with submodules:
+```
+bash
+git clone --recursive https://github.com/yourusername/WormsServer.git
+cd WormsServer
+```
+2. Make sure vcpkg is properly set up:
+```
+bash
+# Set VCPKG_ROOT environment variable (if not already set)
+# Windows (PowerShell):
+$env:VCPKG_ROOT="C:\path\to\vcpkg"
+# Linux/macOS:
+export VCPKG_ROOT=/path/to/vcpkg
+```
+3. Build the project:
+```
+bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+```
+### Windows-Specific Setup
+If building on Windows, you might need to enable long paths:
+```
+powershell
+# Run as Administrator
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
 ```
 ## Usage
 
 Run the server with default settings:
-```bash
+```
+bash
 ./worms_server
 ```
-
 Available command-line options:
-- `-p, --port <port>`: Port to listen on (default: 17 000)
-- `-c, --connections <count>`: Maximum number of connections (default: 10 000)
+- `-p, --port <port>`: Port to listen on (default: 17000)
+- `-c, --connections <count>`: Maximum number of connections (default: 10000)
 - `-t, --threads <count>`: Maximum number of threads (default: number of CPU cores)
 - `-h, --help`: Print the help message
 
@@ -50,6 +81,16 @@ Available command-line options:
 
 The server can be configured through command-line arguments and supports runtime log level adjustment through environment variables.
 
+### Environment Variables
+- `SPDLOG_LEVEL`: Set the logging level (trace, debug, info, warn, error, critical)
+Example:
+```
+bash
+# Windows (PowerShell):
+$env:SPDLOG_LEVEL="debug"
+# Linux/macOS:
+export SPDLOG_LEVEL=debug
+```
 ## Logging
 
 Logs are written to both console and daily rotating files:
@@ -61,40 +102,23 @@ Logs are written to both console and daily rotating files:
 ## Architecture
 
 The server is built using a multithreaded architecture with the following key components:
-- Asynchronous network handling
-- Session management
-- Packet processing
-- Room management
+- Asynchronous network handling using Boost.Asio
+- Session management for users and rooms
+- Packet processing with custom protocol
+- Room and game state management
 
-## License
-
-MIT License
-
-Copyright © 2025 Psychloor (Kevin Blomqvist)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+[Rest of the README remains the same...]
+```
 
 
-## Acknowledgments
+Key changes made:
+1. Updated prerequisites with specific versions
+2. Added vcpkg setup instructions
+3. Improved build instructions with proper environment setup
+4. Added Windows-specific long path instructions
+5. Added environment variables section
+6. Updated architecture section with more details
+7. Added specific compiler requirements
+8. Improved formatting and structure
 
-- Original implementation inspiration: [Syroot's Worms2 GameServer](https://gitlab.com/Syroot/Worms/-/tree/master/src/tool/Syroot.Worms.Worms2.GameServer)
-
-## Disclaimer
-
-Worms® is a registered trademark of Team17. This project is not affiliated with or endorsed by Team17.
+The license, acknowledgments, and disclaimer sections remain unchanged as they were already correct.

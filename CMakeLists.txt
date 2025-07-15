@@ -16,12 +16,12 @@ else()
     message(STATUS "Using default version: ${FINAL_PROJECT_VERSION}")
 endif()
 
-
 project(WormsServer
         VERSION ${FINAL_PROJECT_VERSION}
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
+
 
 # Build configuration
 set(CMAKE_CXX_STANDARD 23)
@@ -29,10 +29,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
 # Set default build type
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
-endif ()
+endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+
+# Windows-specific settings
+if(WIN32)
+    add_definitions(-D_WIN32_WINNT=0x0601)
+    if(MSVC)
+        add_definitions(-D_WIN32_WINNT=0x0601 -D_CRT_SECURE_NO_WARNINGS)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+endif()
 
 
 # Compiler warnings
@@ -87,7 +96,7 @@ set(SOURCES
 # Dependencies
 find_package(Boost REQUIRED COMPONENTS system)
 
-# spdlog setup
+# spdlog setup (from submodule)
 set(SPDLOG_USE_STD_FORMAT ON)
 add_subdirectory(third_party/spdlog)
 
@@ -98,8 +107,6 @@ set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "Build example" FORCE)
 set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(SPDLOG_INSTALL OFF CACHE BOOL "Generate the install target" FORCE)
 
-
-
 # Optimization flags for non-MSVC compilers
 if (NOT MSVC)
     if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -107,20 +114,13 @@ if (NOT MSVC)
     endif ()
 endif ()
 
-# Git tag version in
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/version.hpp
-        @ONLY
-)
-
 # Header only libraries
 add_library(header_only INTERFACE ${LIBHEADERS})
 target_include_directories(header_only INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only
 )
 
-# Worms server executable
+# Main executable
 add_executable(${PROJECT_NAME} main.cpp
         ${HEADERS}
         ${SOURCES}
@@ -128,20 +128,20 @@ add_executable(${PROJECT_NAME} main.cpp
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${Boost_INCLUDE_DIRS}
         ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        Boost::boost
         Boost::system
         header_only
         spdlog::spdlog
 )
 
-# injected version compile if needed: std::cout << "Version: " << PROJECT_VERSION << "\n";
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-        PROJECT_VERSION="${PROJECT_VERSION}"
+# Version injection
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/version.hpp
+        @ONLY
 )
 
 # Installation rules
@@ -154,3 +154,4 @@ install(TARGETS ${PROJECT_NAME}
 install(FILES ${HEADERS}
         DESTINATION include/${PROJECT_NAME}
 )
+
