@@ -1,11 +1,39 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(WormsServer LANGUAGES CXX)
+set(PROJECT_VERSION_MAJOR 1)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 0)
 
+project(WormsServer
+        VERSION 1.0.0
+        LANGUAGES CXX
+        DESCRIPTION "Worms game server"
+)
+
+# Build configuration
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
-add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
+# Set default build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
+endif()
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+
+
+# Compiler warnings
+if(MSVC)
+    add_compile_options(/W4)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Windows-specific definitions
+if(WIN32)
+    add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
+endif()
+
 
 set(LIBHEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/packet_buffers.hpp
@@ -42,23 +70,32 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 )
 
+# Dependencies
+set(Boost_DIR "C:/Boost" CACHE PATH "Path to Boost installation")
+file(TO_CMAKE_PATH "${Boost_DIR}" Boost_DIR)
+
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED)
 
-set(SPDLOG_USE_STD_FORMAT ON)
+# spdlog setup
 add_subdirectory(third_party/spdlog)
+set(SPDLOG_USE_STD_FORMAT ON)
+
+# Optimization flags for non-MSVC compilers
+if(NOT MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        add_compile_options(-O2)
+    endif()
+endif()
 
 
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(-O2)
-elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    add_compile_options(-O2 -g)
-endif ()
-
-
+# Library and executable targets
 add_library(header_only INTERFACE ${LIBHEADERS})
 target_include_directories(header_only INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only)
-
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only
+)
 
 add_executable(${PROJECT_NAME} main.cpp
         ${HEADERS}
@@ -68,11 +105,20 @@ add_executable(${PROJECT_NAME} main.cpp
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/spdlog/include
-
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         header_only
         spdlog::spdlog
+)
+
+# Installation rules
+install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+)
+
+install(FILES ${HEADERS}
+        DESTINATION include/${PROJECT_NAME}
 )
