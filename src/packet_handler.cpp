@@ -518,11 +518,10 @@ namespace worms_server
 
         // Require valid game ID and user to be in appropriate room.
         const auto games = database->get_games();
+        const auto game_id = packet->fields().value0.value();
+        const auto room_id = client_user->get_room_id();
         const auto it = std::ranges::find_if(games,
-            [game_id = packet->fields().value0.
-                               value(), room_id = client_user
-              ->get_room_id()](
-            const auto& game) -> bool
+            [game_id, room_id](const auto& game) -> bool
             {
                 return game->get_id() ==
                     game_id && game->
