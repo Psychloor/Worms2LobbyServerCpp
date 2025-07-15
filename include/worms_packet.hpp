@@ -12,12 +12,20 @@
 
 namespace worms_server
 {
+
+}
+
+namespace worms_server
+{
+	class worms_packet;
 	enum class packet_code : uint32_t;
 	enum class packet_flags : uint32_t;
 }
 
 namespace worms_server
 {
+	using worms_packet_ptr = std::shared_ptr<worms_packet>;
+
 	struct packet_fields
 	{
 		std::optional<uint32_t> value0, value1, value2, value3, value4, value10,
@@ -39,7 +47,7 @@ namespace worms_server
 
 		explicit worms_packet(packet_code code, packet_fields fields = {});
 
-		[[nodiscard]] static net::deserialization_result<std::shared_ptr<worms_packet>, std::string>
+		[[nodiscard]] static net::deserialization_result<worms_packet_ptr, std::string>
 		read_from(
 			net::packet_reader& reader);
 

@@ -48,7 +48,7 @@ namespace net
 			buffer_.clear();
 		}
 
-		deserialization_result<std::shared_ptr<worms_server::worms_packet>, std::string>
+		deserialization_result<worms_server::worms_packet_ptr, std::string>
 		try_read_packet()
 		{
 			if (buffer_.empty())

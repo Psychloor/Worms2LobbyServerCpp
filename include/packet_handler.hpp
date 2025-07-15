@@ -8,6 +8,8 @@
 #include <boost/asio.hpp>
 #include <memory>
 
+#include "worms_packet.hpp"
+
 using boost::asio::awaitable;
 using boost::asio::use_awaitable;
 using namespace boost::asio;
@@ -25,7 +27,7 @@ namespace worms_server
 		static awaitable<bool> handle_packet(
 			const std::shared_ptr<user>& client_user,
 			const std::shared_ptr<database>& database,
-			const std::shared_ptr<worms_packet>& packet);
+			const worms_packet_ptr& packet);
 	};
 }
 

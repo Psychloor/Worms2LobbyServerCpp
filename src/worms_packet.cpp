@@ -28,7 +28,7 @@ namespace worms_server
 	{
 	}
 
-	net::deserialization_result<std::shared_ptr<worms_packet>, std::string>
+	net::deserialization_result<worms_packet_ptr, std::string>
 	worms_packet::read_from(
 		net::packet_reader& reader)
 	{

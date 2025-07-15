@@ -70,7 +70,7 @@ namespace worms_server
 	static awaitable<bool> on_chat_room(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value0.value_or(0) != client_user->get_id() || !
 			packet->fields().value3.has_value() || !
@@ -152,7 +152,7 @@ namespace worms_server
 	static awaitable<bool> on_list_rooms(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value4.value_or(0) != 0)
 		{
@@ -178,7 +178,7 @@ namespace worms_server
 	static awaitable<bool> on_list_users(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.
 			value_or(0) != client_user->
@@ -213,7 +213,7 @@ namespace worms_server
 	static awaitable<bool> on_list_games(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value4.value_or(0) != 0 || packet->fields().value2.
 			value_or(0) != client_user->
@@ -248,7 +248,7 @@ namespace worms_server
 	static awaitable<bool> on_create_room(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.
 			value_or(0) != 0 || packet->fields().
@@ -308,7 +308,7 @@ namespace worms_server
 
 	static awaitable<bool> on_join(const std::shared_ptr<user>& client_user,
 								   const std::shared_ptr<database>& database,
-								   const std::shared_ptr<worms_packet>& packet)
+								   const worms_packet_ptr& packet)
 	{
 		if (!packet->fields().value2.has_value() || packet->fields().value10.
 			value_or(0) != client_user->get_id())
@@ -375,7 +375,7 @@ namespace worms_server
 
 	static awaitable<bool> on_leave(const std::shared_ptr<user>& client_user,
 									const std::shared_ptr<database>& database,
-									const std::shared_ptr<worms_packet>& packet)
+									const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value10.value_or(0) != client_user->get_id() || !
 			packet->fields().value2.has_value())
@@ -407,7 +407,7 @@ namespace worms_server
 
 	static awaitable<bool> on_close(const std::shared_ptr<user>& client_user,
 									const std::shared_ptr<database>& database,
-									const std::shared_ptr<worms_packet>& packet)
+									const worms_packet_ptr& packet)
 	{
 		if (!packet->fields().value10.has_value())
 		{
@@ -426,7 +426,7 @@ namespace worms_server
 	static awaitable<bool> on_create_game(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (packet->fields().value1.value_or(1) != 0
 			|| packet->fields().value2.value_or(0) != client_user->get_room_id()
@@ -498,7 +498,7 @@ namespace worms_server
 	static awaitable<bool> on_connect_game(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		if (!packet->fields().value0.has_value())
 		{
@@ -537,7 +537,7 @@ namespace worms_server
 	awaitable<bool> packet_handler::handle_packet(
 		const std::shared_ptr<user>& client_user,
 		const std::shared_ptr<database>& database,
-		const std::shared_ptr<worms_packet>& packet)
+		const worms_packet_ptr& packet)
 	{
 		switch (packet->code())
 		{
