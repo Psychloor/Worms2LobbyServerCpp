@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-#include <boost/asio/ip/address_v4.hpp>
+#include <asio/ip/address_v4.hpp>
 
 
 #include "session_info.hpp"
@@ -41,7 +41,7 @@ namespace worms_server
 
         void send_packet(const net::shared_bytes_ptr& packet) const;
 
-        boost::asio::ip::address_v4 get_address() const;
+        asio::ip::address_v4 get_address() const;
 
     private:
         uint32_t id_;

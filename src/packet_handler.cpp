@@ -450,9 +450,9 @@ namespace worms_server
         {
             parsed_ip = ip::make_address(packet->fields().data.value());
         }
-        catch (const boost::system::error_code& e)
+        catch (const error_code& e)
         {
-            spdlog::error("Invalid IP address: " + e.what());
+            spdlog::error("Invalid IP address: " + e.message());
             co_return false;
         }
 

@@ -4,8 +4,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include <boost/asio/ip/address_v4.hpp>
+#include <asio/ip/address_v4.hpp>
 #include <concurrent_queue.hpp>
+#include <shared_mutex>
 
 namespace worms_server
 {

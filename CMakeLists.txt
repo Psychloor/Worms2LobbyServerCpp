@@ -84,11 +84,7 @@ set(SOURCES
 )
 
 # Dependencies
-find_package(Boost REQUIRED)
-
-# spdlog setup (from submodule)
-set(SPDLOG_USE_STD_FORMAT ON)
-add_subdirectory(third_party/spdlog)
+find_package(asio CONFIG REQUIRED)
 
 # Configure spdlog options
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE)
@@ -96,6 +92,8 @@ set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "Use external fmt library instead of bund
 set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "Build example" FORCE)
 set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(SPDLOG_INSTALL OFF CACHE BOOL "Generate the install target" FORCE)
+find_package(spdlog REQUIRED)
+
 
 # Optimization flags for non-MSVC compilers
 if (NOT MSVC)
@@ -118,12 +116,11 @@ add_executable(${PROJECT_NAME} main.cpp
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${Boost_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         header_only
+        asio::asio
         spdlog::spdlog
 )
 

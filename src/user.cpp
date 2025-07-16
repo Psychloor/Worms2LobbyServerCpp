@@ -45,7 +45,7 @@ void worms_server::user::send_packet(const net::shared_bytes_ptr& packet) const
     }
 }
 
-boost::asio::ip::address_v4 worms_server::user::get_address() const
+asio::ip::address_v4 worms_server::user::get_address() const
 {
     if (!session_.expired())
     {

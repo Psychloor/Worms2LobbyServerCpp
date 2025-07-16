@@ -5,7 +5,7 @@
 #ifndef ROOM_HPP
 #define ROOM_HPP
 
-#include <boost/asio/ip/address_v4.hpp>
+#include <asio/ip/address_v4.hpp>
 #include <string>
 
 #include "session_info.hpp"
@@ -19,7 +19,7 @@ namespace worms_server
         explicit room(uint32_t id,
             std::string_view name,
             nation nation,
-            boost::asio::ip::address_v4 address);
+            asio::ip::address_v4 address);
 
         ~room()
         {
@@ -29,13 +29,13 @@ namespace worms_server
         [[nodiscard]] uint32_t get_id() const;
         [[nodiscard]] std::string_view get_name() const;
         [[nodiscard]] const session_info& get_session_info() const;
-        [[nodiscard]] boost::asio::ip::address_v4 get_address() const;
+        [[nodiscard]] asio::ip::address_v4 get_address() const;
 
     private:
         uint32_t id_;
         std::string name_;
         session_info session_info_;
-        boost::asio::ip::address_v4 address_;
+        asio::ip::address_v4 address_;
     };
 }
 

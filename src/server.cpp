@@ -16,7 +16,7 @@ namespace worms_server
     : port_(port), max_connections_(max_connections),
       signals_(io_context_, SIGINT, SIGTERM)
     {
-        signals_.async_wait([this](const boost::system::error_code&, int)
+        signals_.async_wait([this](const error_code&, int)
         {
             stop();
         });
@@ -40,7 +40,7 @@ namespace worms_server
         for (;;)
         {
             ip::tcp::socket socket(executor);
-            boost::system::error_code ec;
+            error_code ec;
 
             co_await acceptor.async_accept(socket,
                 redirect_error(use_awaitable, ec));
@@ -59,7 +59,7 @@ namespace worms_server
                 socket.set_option(ip::tcp::socket::keep_alive(true));
 
                 const auto session = std::make_shared<
-                    worms_server::user_session>(std::move(socket));
+                    user_session>(std::move(socket));
                 co_spawn(executor, session->run(), detached);
             }
             else

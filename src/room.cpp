@@ -11,7 +11,7 @@ namespace worms_server
     room::room(const uint32_t id,
         const std::string_view name,
         const nation nation,
-        boost::asio::ip::address_v4 address) : id_(id), name_(name), session_info_{nation, session_type::room},
+        asio::ip::address_v4 address) : id_(id), name_(name), session_info_{nation, session_type::room},
                                                address_(std::move(address))
     {}
 
@@ -30,7 +30,7 @@ namespace worms_server
         return session_info_;
     }
 
-    boost::asio::ip::address_v4 room::get_address() const
+    asio::ip::address_v4 room::get_address() const
     {
         return address_;
     }

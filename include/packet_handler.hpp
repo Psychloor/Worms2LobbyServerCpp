@@ -6,13 +6,13 @@
 #define PACKET_ROUTER_HPP
 
 #include <memory>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 
 #include "worms_packet.hpp"
 
-using boost::asio::awaitable;
-using boost::asio::use_awaitable;
-using namespace boost::asio;
+using asio::awaitable;
+using asio::use_awaitable;
+using namespace asio;
 
 namespace worms_server
 {

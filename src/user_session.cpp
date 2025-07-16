@@ -210,7 +210,7 @@ namespace worms_server
 				// Flush everything currently queued
 				while (packets_.try_dequeue(packet))
 				{
-					boost::system::error_code ec;
+					error_code ec;
 					co_await async_write(socket_,
 						buffer(packet->data(), packet->size()),
 						redirect_error(use_awaitable, ec));
@@ -218,7 +218,7 @@ namespace worms_server
 				}
 
 				timer_.expires_after(10ms);
-				boost::system::error_code ec;
+				error_code ec;
 				co_await timer_.async_wait(redirect_error(use_awaitable, ec));
 
 				if (ec == error::operation_aborted) continue; // packet arrived
@@ -239,7 +239,7 @@ namespace worms_server
 		{
 			// Wait for the client to send a login packet
 			std::vector<std::byte> incoming(1024);
-			boost::system::error_code ec;
+			error_code ec;
 
 			co_await socket_.async_receive(buffer(incoming),
 				redirect_error(use_awaitable, ec));
@@ -348,7 +348,7 @@ namespace worms_server
 			{
 				try
 				{
-					boost::system::error_code ec;
+					error_code ec;
 					const size_t read = co_await socket_.async_receive(
 						buffer(incoming),
 						redirect_error(use_awaitable, ec));

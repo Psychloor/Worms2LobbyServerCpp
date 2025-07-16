@@ -5,7 +5,7 @@
 #ifndef USER_SESSION_HPP
 #define USER_SESSION_HPP
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 
 #include "concurrent_queue.hpp"
 #include "packet_buffers.hpp"
@@ -15,9 +15,9 @@ namespace worms_server
     class room;
     class user;
 
-    using boost::asio::awaitable;
-    using boost::asio::use_awaitable;
-    using namespace boost::asio;
+    using asio::awaitable;
+    using asio::use_awaitable;
+    using namespace asio;
 
     class user_session final : public std::enable_shared_from_this<user_session>
     {
