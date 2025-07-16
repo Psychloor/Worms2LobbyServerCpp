@@ -30,6 +30,7 @@ Built with modern C++ features and focusing on performance and reliability.
 The following dependencies will be automatically installed through vcpkg:
 - Asio 1.32.0 or higher
 - spdlog 1.12.0 or higher
+- concurrentqueue 1.0.4 or higher
 
 ## Building
 
