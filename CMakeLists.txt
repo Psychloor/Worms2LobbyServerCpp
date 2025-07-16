@@ -85,6 +85,8 @@ set(SOURCES
 
 # Dependencies
 find_package(asio CONFIG REQUIRED)
+find_package(unofficial-concurrentqueue CONFIG REQUIRED)
+#find_path(CONCURRENTQUEUE_INCLUDE_DIR concurrentqueue.hpp)
 
 # Configure spdlog options
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE)
@@ -102,12 +104,6 @@ if (NOT MSVC)
     endif ()
 endif ()
 
-# Header only libraries
-add_library(header_only INTERFACE ${LIBHEADERS})
-target_include_directories(header_only INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only
-)
-
 # Main executable
 add_executable(${PROJECT_NAME} main.cpp
         ${HEADERS}
@@ -119,9 +115,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        header_only
         asio::asio
         spdlog::spdlog
+        unofficial::concurrentqueue::concurrentqueue
 )
 
 # Installation rules

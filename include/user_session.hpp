@@ -6,9 +6,8 @@
 #define USER_SESSION_HPP
 
 #include <asio.hpp>
-
-#include "concurrent_queue.hpp"
 #include "packet_buffers.hpp"
+#include "concurrentqueue/concurrentqueue.h"
 
 namespace worms_server
 {

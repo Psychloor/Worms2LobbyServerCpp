@@ -2,7 +2,8 @@
   "name": "worms2lobbyservercpp",
   "dependencies": [
     "asio",
-    "spdlog"
+    "spdlog",
+    "concurrentqueue"
   ],
   "builtin-baseline": "4fc5d0252289d5dc22a422beff86344a6cb52414",
   "version": "1.0.0"

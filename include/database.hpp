@@ -2,11 +2,10 @@
 #define DATABASE_HPP
 
 #include <memory>
-#include <unordered_map>
-
-#include <asio/ip/address_v4.hpp>
-#include <concurrent_queue.hpp>
 #include <shared_mutex>
+#include <unordered_map>
+#include <asio/ip/address_v4.hpp>
+#include <concurrentqueue/concurrentqueue.h>
 
 namespace worms_server
 {
