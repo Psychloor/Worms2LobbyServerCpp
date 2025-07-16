@@ -26,9 +26,16 @@ namespace worms_server
     {
         auto executor = co_await this_coro::executor;
         ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), port_});
-        acceptor.set_option(ip::tcp::acceptor::reuse_address(true));
 
-        spdlog::info("Listening on port {}", port_);
+        if (acceptor.is_open())
+        {
+            acceptor.set_option(ip::tcp::acceptor::reuse_address(true));
+            spdlog::info("Listening on port {}", port_);
+        } else
+        {
+            spdlog::error("Failed to open listener on port: {}", port_ );
+            co_return;
+        }
 
         for (;;)
         {
