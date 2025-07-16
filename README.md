@@ -24,19 +24,19 @@ Built with modern C++ features and focusing on performance and reliability.
 - C++23 compatible compiler (Clang 16+ or MSVC 2022+)
 - CMake 3.31 or higher
 - vcpkg package manager
-- Git (for cloning repository and submodules)
+- Git (for cloning repository)
 
 ### Required Dependencies
 The following dependencies will be automatically installed through vcpkg:
-- Boost 1.84.0 or higher (system, endian)
+- Asio 1.32.0 or higher
 - spdlog 1.12.0 or higher
 
 ## Building
 
-1. Clone the repository with submodules:
+1. Clone the repository:
 ```
 bash
-git clone --recursive https://github.com/yourusername/WormsServer.git
+git clone https://github.com/yourusername/WormsServer.git
 cd WormsServer
 ```
 2. Make sure vcpkg is properly set up:
@@ -69,8 +69,8 @@ bash
 ./worms_server
 ```
 Available command-line options:
-- `-p, --port <port>`: Port to listen on (default: 17000)
-- `-c, --connections <count>`: Maximum number of connections (default: 10000)
+- `-p, --port <port>`: Port to listen on (default: 17,000)
+- `-c, --connections <count>`: Maximum number of connections (default: 10,000)
 - `-t, --threads <count>`: Maximum number of threads (default: number of CPU cores)
 - `-h, --help`: Print the help message
 
@@ -98,7 +98,7 @@ Logs are written to both console and daily rotating files:
 
 ## Architecture
 
-The server is built using a multithreaded architecture with the following key components:
+The server is built using a multithreaded architecture with the following key parts:
 - Asynchronous network handling using Boost.Asio
 - Session management for users and rooms
 - Packet processing with custom protocol
