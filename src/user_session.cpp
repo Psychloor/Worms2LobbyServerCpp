@@ -199,6 +199,7 @@ namespace worms_server
 	{
 		const moodycamel::ProducerToken producer_token(packets_);
 		packets_.enqueue(producer_token, packet);
+		timer_.cancel_one(); // wake up the writer if sleeping
 	}
 
 	ip::address_v4 user_session::address_v4() const
@@ -208,10 +209,10 @@ namespace worms_server
 
 	awaitable<void> user_session::writer()
 	{
-		using namespace std::chrono_literals;
 		try
 		{
 			moodycamel::ConsumerToken consumer_token(packets_);
+			static constexpr auto flush_delay = std::chrono::days(1000);
 			net::shared_bytes_ptr packet;
 			while (!is_shutting_down_)
 			{
@@ -224,10 +225,12 @@ namespace worms_server
 										 redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
-
-				timer_.expires_after(10ms);
 				error_code ec;
-				co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+				if (packets_.size_approx() == 0)
+				{
+					timer_.expires_after(flush_delay);
+					co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+				}
 
 				if (ec == error::operation_aborted) continue; // packet arrived
 				if (ec) co_return; // io_context stopped
