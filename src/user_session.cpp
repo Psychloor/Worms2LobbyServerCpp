@@ -8,7 +8,6 @@
 #include "worms_packet.hpp"
 
 #include <asio/steady_timer.hpp>
-#include <asio/experimental/awaitable_operators.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -19,8 +18,6 @@
 
 namespace worms_server
 {
-	using namespace asio::experimental::awaitable_operators;
-
 	static awaitable<void> leave_room(const std::shared_ptr<room>& room,
 									  uint32_t left_id)
 	{
@@ -229,7 +226,8 @@ namespace worms_server
 				if (packets_.size_approx() == 0)
 				{
 					timer_.expires_after(flush_delay);
-					co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+					co_await timer_.async_wait(
+						redirect_error(use_awaitable, ec));
 				}
 
 				if (ec == error::operation_aborted) continue; // packet arrived
