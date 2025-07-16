@@ -28,7 +28,7 @@ void initialize_logging()
         true);
 
     std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-    const auto logger = std::make_shared<spdlog::async_logger>("async_logger",
+    const auto logger = std::make_shared<spdlog::async_logger>("Worms Server",
         sinks.begin(),
         sinks.end(),
         spdlog::thread_pool(),
