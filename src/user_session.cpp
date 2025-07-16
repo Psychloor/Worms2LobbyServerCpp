@@ -7,6 +7,9 @@
 #include "game.hpp"
 #include "worms_packet.hpp"
 
+#include <asio/steady_timer.hpp>
+#include <asio/experimental/awaitable_operators.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include "framed_packet_reader.hpp"
@@ -16,8 +19,10 @@
 
 namespace worms_server
 {
+	using namespace asio::experimental::awaitable_operators;
+
 	static awaitable<void> leave_room(const std::shared_ptr<room>& room,
-		uint32_t left_id)
+									  uint32_t left_id)
 	{
 		const auto database = database::get_instance();
 		const auto users = database->get_users();
@@ -31,11 +36,11 @@ namespace worms_server
 				return user->get_id() != left_id && user->get_room_id() ==
 					room_id;
 			}) && !std::ranges::any_of(database->get_games(),
-			[left_id, room_id](const auto& game)
-			{
-				return game->get_id() != left_id &&
-					game->get_room_id() == room_id;
-			});
+									   [left_id, room_id](const auto& game)
+									   {
+										   return game->get_id() != left_id &&
+											   game->get_room_id() == room_id;
+									   });
 
 		if (room_closed)
 		{
@@ -79,7 +84,7 @@ namespace worms_server
 		}
 
 		spdlog::debug("User Session: Disconnecting user {}",
-			client_user->get_name());
+					  client_user->get_name());
 
 		uint32_t left_id = client_user->get_id();
 
@@ -136,7 +141,7 @@ namespace worms_server
 	}
 
 	user_session::user_session(ip::tcp::socket socket):
-	socket_(std::move(socket)), timer_(socket_.get_executor())
+		socket_(std::move(socket)), timer_(socket_.get_executor())
 	{
 		timer_.expires_at(std::chrono::steady_clock::time_point::max());
 		server::connection_count.fetch_add(1, std::memory_order_relaxed);
@@ -165,11 +170,11 @@ namespace worms_server
 		auto self = shared_from_this();
 
 		co_spawn(socket_.get_executor(),
-			[self = shared_from_this()]() -> awaitable<void>
-			{
-				co_await self->writer();
-			},
-			detached);
+				 [self = shared_from_this()]() -> awaitable<void>
+				 {
+					 co_await self->writer();
+				 },
+				 detached);
 
 		auto user = co_await handle_login();
 		if (user == nullptr)
@@ -181,7 +186,7 @@ namespace worms_server
 		user_.store(std::move(user), std::memory_order::release);
 
 		spdlog::info("User {} logged in",
-			user_.load(std::memory_order::relaxed)->get_name());
+					 user_.load(std::memory_order::relaxed)->get_name());
 
 		co_await handle_session();
 
@@ -212,8 +217,8 @@ namespace worms_server
 				{
 					error_code ec;
 					co_await async_write(socket_,
-						buffer(packet->data(), packet->size()),
-						redirect_error(use_awaitable, ec));
+										 buffer(packet->data(), packet->size()),
+										 redirect_error(use_awaitable, ec));
 					if (ec) co_return; // socket closed/reset
 				}
 
@@ -222,7 +227,7 @@ namespace worms_server
 				co_await timer_.async_wait(redirect_error(use_awaitable, ec));
 
 				if (ec == error::operation_aborted) continue; // packet arrived
-				if (ec) co_return;                            // io_context stopped
+				if (ec) co_return; // io_context stopped
 			}
 		}
 		catch (const std::exception& e)
@@ -235,14 +240,31 @@ namespace worms_server
 	awaitable<std::shared_ptr<user>> user_session::handle_login()
 	{
 		uint32_t user_id = 0;
+		steady_timer timer(socket_.get_executor());
+		timer.expires_after(std::chrono::seconds(3));
+
 		try
 		{
+			// Start the timer
+			timer.async_wait([&](const error_code& wait_ec)
+			{
+				if (!wait_ec)
+				{
+					// Timer expired, close the socket
+					socket_.close();
+				}
+			});
+
 			// Wait for the client to send a login packet
 			std::vector<std::byte> incoming(1024);
 			error_code ec;
 
 			co_await socket_.async_receive(buffer(incoming),
-				redirect_error(use_awaitable, ec));
+										   redirect_error(use_awaitable, ec));
+
+			// Cancel the timer since we got data
+			timer.cancel();
+
 			if (ec)
 			{
 				spdlog::error("Error reading login packet: {}", ec.message());
@@ -254,7 +276,7 @@ namespace worms_server
 			if (login_packet.status == net::packet_parse_status::error)
 			{
 				spdlog::error("Error reading login packet: {}",
-					login_packet.error.value_or(""));
+							  login_packet.error.value_or(""));
 				co_return nullptr;
 			}
 
@@ -325,7 +347,7 @@ namespace worms_server
 
 			// Send the login reply packet
 			send_packet(worms_packet::freeze(packet_code::login_reply,
-				{.value1 = user_id, .error = 0}));
+											 {.value1 = user_id, .error = 0}));
 
 			co_return client_user;
 		}
@@ -344,20 +366,36 @@ namespace worms_server
 			const auto database = database::get_instance();
 			net::framed_packet_reader reader;
 
+			steady_timer timer(socket_.get_executor());
+
 			while (socket_.is_open())
 			{
 				try
 				{
+					timer.expires_after(std::chrono::minutes(10));
+					timer.async_wait([&](const error_code& wait_ec)
+					{
+						if (!wait_ec)
+						{
+							// Timer expired, close the socket
+							socket_.close();
+						}
+					});
+
 					error_code ec;
 					const size_t read = co_await socket_.async_receive(
 						buffer(incoming),
 						redirect_error(use_awaitable, ec));
 
+					// Cancel the timer since we got data
+					timer.cancel();
+
+
 					if (read == 0 || ec == error::eof)
 					{
 						spdlog::info("User {} disconnected",
-							user_.load(std::memory_order::relaxed)->
-							      get_name());
+									 user_.load(std::memory_order::relaxed)->
+										   get_name());
 						break;
 					}
 					if (ec)
@@ -380,7 +418,7 @@ namespace worms_server
 						{
 							// Invalid data
 							spdlog::error("Parse error: {}",
-								packet.error.value_or(""));
+										  packet.error.value_or(""));
 							co_return;
 						}
 
