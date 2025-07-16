@@ -27,8 +27,8 @@ namespace worms_server
 
 		spdlog::debug("User Session: Leaving room {}", room_id);
 
-		const bool room_closed = room != nullptr && !std::ranges::any_of(users,
-			[left_id, room_id](const auto& user)
+		const bool room_closed = room != nullptr
+			&& !std::ranges::any_of(users, [left_id, room_id](const auto& user)
 			{
 				return user->get_id() != left_id && user->get_room_id() ==
 					room_id;
@@ -412,25 +412,25 @@ namespace worms_server
 					reader.append(incoming.data(), read);
 					while (true)
 					{
-						const auto packet = reader.try_read_packet();
-						if (packet.status == net::packet_parse_status::partial)
+						const auto [status, data, error] = reader.try_read_packet();
+						if (status == net::packet_parse_status::partial)
 						{
 							// Needs more data
 							break;
 						}
 
-						if (packet.status == net::packet_parse_status::error)
+						if (status == net::packet_parse_status::error)
 						{
 							// Invalid data
 							spdlog::error("Parse error: {}",
-										  packet.error.value_or(""));
+										  error.value_or(""));
 							co_return;
 						}
 
 						if (!co_await packet_handler::handle_packet(
 							user_.load(std::memory_order::relaxed),
 							database,
-							std::move(*packet.data)))
+							std::move(*data)))
 						{
 							spdlog::warn(
 								"Packet handler failed or returned false");
