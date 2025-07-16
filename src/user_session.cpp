@@ -370,6 +370,7 @@ namespace worms_server
 		{
 			std::vector<std::byte> incoming(1024 * 2);
 			const auto database = database::get_instance();
+			constexpr auto timeout_delay = std::chrono::minutes(10);
 			net::framed_packet_reader reader;
 
 			steady_timer timer(socket_.get_executor());
@@ -378,7 +379,7 @@ namespace worms_server
 			{
 				try
 				{
-					timer.expires_after(std::chrono::minutes(10));
+					timer.expires_after(timeout_delay);
 					timer.async_wait([&](const error_code& wait_ec)
 					{
 						if (!wait_ec)
