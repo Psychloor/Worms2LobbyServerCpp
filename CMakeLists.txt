@@ -86,7 +86,6 @@ set(SOURCES
 # Dependencies
 find_package(asio CONFIG REQUIRED)
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
-#find_path(CONCURRENTQUEUE_INCLUDE_DIR concurrentqueue.hpp)
 
 # Configure spdlog options
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE)
