@@ -312,7 +312,7 @@ namespace worms_server
 
 			auto current_users = database->get_users();
 			const auto found_user = std::ranges::find_if(current_users,
-				[&](const auto& user)
+				[&username](const auto& user)
 				{
 					return equals_case_insensitive(user->get_name(), username);
 				});
