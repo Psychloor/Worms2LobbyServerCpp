@@ -127,13 +127,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         spdlog::spdlog
 )
 
-# Version injection
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/version.hpp
-        @ONLY
-)
-
 # Installation rules
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin
