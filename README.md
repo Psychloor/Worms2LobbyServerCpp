@@ -1,7 +1,4 @@
-﻿Here's the updated README.md with proper prerequisites, build instructions, and vcpkg information:
-
-```markdown
-# WormsServer
+﻿# WormsServer
 
 A modern C++23 implementation of a Worms 2® game server, 
 inspired by and partially ported from [Syroot's Worms2 GameServer](https://gitlab.com/Syroot/Worms/-/tree/master/src/tool/Syroot.Worms.Worms2.GameServer).
@@ -106,19 +103,3 @@ The server is built using a multithreaded architecture with the following key co
 - Session management for users and rooms
 - Packet processing with custom protocol
 - Room and game state management
-
-[Rest of the README remains the same...]
-```
-
-
-Key changes made:
-1. Updated prerequisites with specific versions
-2. Added vcpkg setup instructions
-3. Improved build instructions with proper environment setup
-4. Added Windows-specific long path instructions
-5. Added environment variables section
-6. Updated architecture section with more details
-7. Added specific compiler requirements
-8. Improved formatting and structure
-
-The license, acknowledgments, and disclaimer sections remain unchanged as they were already correct.

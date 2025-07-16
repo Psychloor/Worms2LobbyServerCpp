@@ -6,18 +6,8 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
             CACHE STRING "")
 endif()
 
-
-# Version handling
-if(DEFINED ENV{TAG_VERSION})
-    set(FINAL_PROJECT_VERSION $ENV{TAG_VERSION})
-    message(STATUS "Using version from TAG: ${FINAL_PROJECT_VERSION}")
-else()
-    set(FINAL_PROJECT_VERSION "1.0.0")
-    message(STATUS "Using default version: ${FINAL_PROJECT_VERSION}")
-endif()
-
 project(WormsServer
-        VERSION ${FINAL_PROJECT_VERSION}
+        VERSION 1.0.0
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
