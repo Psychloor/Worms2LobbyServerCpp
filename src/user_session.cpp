@@ -155,8 +155,9 @@ namespace worms_server
 		server::connection_count.fetch_sub(1, std::memory_order_relaxed);
 
 		// Clear any pending packets
+		moodycamel::ConsumerToken consumer_token(packets_);
 		net::shared_bytes_ptr bytes;
-		while (packets_.try_dequeue(bytes))
+		while (packets_.try_dequeue(consumer_token, bytes))
 		{
 			// Drain the queue
 		}
@@ -196,7 +197,8 @@ namespace worms_server
 
 	void user_session::send_packet(const net::shared_bytes_ptr& packet)
 	{
-		packets_.enqueue(packet);
+		const moodycamel::ProducerToken producer_token(packets_);
+		packets_.enqueue(producer_token, packet);
 	}
 
 	ip::address_v4 user_session::address_v4() const
@@ -209,11 +211,12 @@ namespace worms_server
 		using namespace std::chrono_literals;
 		try
 		{
+			moodycamel::ConsumerToken consumer_token(packets_);
 			net::shared_bytes_ptr packet;
-			while (socket_.is_open() && !is_shutting_down_)
+			while (!is_shutting_down_)
 			{
 				// Flush everything currently queued
-				while (packets_.try_dequeue(packet))
+				while (packets_.try_dequeue(consumer_token, packet))
 				{
 					error_code ec;
 					co_await async_write(socket_,
