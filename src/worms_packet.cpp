@@ -201,7 +201,7 @@ namespace worms_server
 				static_cast<std::byte>(0));
 
 			const std::string name_encoded(
-				reinterpret_cast<char const*>(name_encoded_bytes.data()),
+				reinterpret_cast<const char*>(name_encoded_bytes.data()),
 				std::distance(std::begin(name_encoded_bytes), terminator_pos));
 
 			if (name_encoded.length() > max_name_length)
