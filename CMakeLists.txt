@@ -7,7 +7,7 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(WormsServer
-        VERSION 1.1.0
+        VERSION 1.1.1
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
@@ -40,12 +40,6 @@ if (MSVC)
 else ()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif ()
-
-
-# Set variables for different source/header files
-set(LIBHEADERS
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/header_only/concurrent_queue.hpp
-)
 
 set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/nation.hpp

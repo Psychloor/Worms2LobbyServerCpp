@@ -14,6 +14,7 @@ namespace worms_server
 
 	server::server(const uint16_t port, const size_t max_connections)
 		: port_(port), max_connections_(max_connections),
+		  thread_pool_(std::max(1u, std::thread::hardware_concurrency())),
 		  strand_(io_context_.get_executor()),
 		  signals_(io_context_, SIGINT, SIGTERM)
 	{
@@ -78,17 +79,22 @@ namespace worms_server
 
 		for (size_t i = 0; i < thread_count - 1; ++i)
 		{
-			threads_.emplace_back([this]()
+			post(io_context_, [this]()
 			{
 				io_context_.run();
 			});
 		}
 
+		// Run the io_context on the main thread as well
 		io_context_.run();
+
+		// Wait for the thread pool to complete
+		thread_pool_.join();
 	}
 
 	void server::stop()
 	{
 		io_context_.stop();
+		thread_pool_.stop();
 	}
 }

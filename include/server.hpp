@@ -29,6 +29,7 @@ namespace worms_server
         uint16_t port_;
         size_t max_connections_;
 
+        thread_pool thread_pool_;
         io_context io_context_;
         strand<io_context::executor_type> strand_;
         signal_set signals_;
