@@ -12,6 +12,7 @@
 
 namespace net
 {
+
     class framed_packet_reader
     {
     public:

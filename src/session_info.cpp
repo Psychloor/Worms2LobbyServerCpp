@@ -42,20 +42,18 @@ namespace worms_server
 	{
 		session_info info;
 
-		info.crc1 = reader.read_le<uint32_t>().value();
-		info.crc2 = reader.read_le<uint32_t>().value();
-		info.nation = static_cast<worms_server::nation>(reader.read_le<
-			uint8_t>().value());
-		info.game_version = reader.read_le<uint8_t>().value();
-		info.game_release = reader.read_le<uint8_t>().value();
-		info.type = static_cast<session_type>(reader.read_le<uint8_t>().
-			value());
-		info.access = static_cast<session_access>(reader.read_le<uint8_t>().
-			value());
-		info.always_one = reader.read_le<uint8_t>().value();
-		info.always_zero = reader.read_le<uint8_t>().value();
+		info.crc1 = *reader.read_le<uint32_t>();
+		info.crc2 = *reader.read_le<uint32_t>();
+		info.nation = static_cast<worms_server::nation>(*reader.read_le<
+			uint8_t>());
+		info.game_version = *reader.read_le<uint8_t>();
+		info.game_release = *reader.read_le<uint8_t>();
+		info.type = static_cast<session_type>(*reader.read_le<uint8_t>());
+		info.access = static_cast<session_access>(*reader.read_le<uint8_t>());
+		info.always_one = *reader.read_le<uint8_t>();
+		info.always_zero = *reader.read_le<uint8_t>();
 
-		const auto padding_bytes = reader.read_bytes(padding_size).value();
+		const auto padding_bytes = *reader.read_bytes(padding_size);
 		std::ranges::copy(padding_bytes, std::begin(info.padding));
 
 		if (!verify_session_info(info))

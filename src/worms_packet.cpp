@@ -34,7 +34,7 @@ namespace worms_server
 		{
 			return {.status = net::packet_parse_status::partial};
 		}
-		const uint32_t code_value = reader.read_le<uint32_t>().value();
+		const uint32_t code_value = *reader.read_le<uint32_t>();
 		if (!packet_code_exists(code_value))
 		{
 			return {
@@ -44,7 +44,7 @@ namespace worms_server
 		}
 
 		const auto code = static_cast<packet_code>(code_value);
-		const auto flags = reader.read_le<uint32_t>().value();
+		const auto flags = *reader.read_le<uint32_t>();
 		auto packet = std::make_shared<worms_packet>(code);
 
 		if (has_flag(flags, packet_flags::value0))
@@ -53,7 +53,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value0 = reader.read_le<uint32_t>().value();
+			packet->fields_.value0 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::value1))
@@ -62,7 +62,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value1 = (reader.read_le<uint32_t>().value());
+			packet->fields_.value1 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::value2))
@@ -71,7 +71,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value2 = (reader.read_le<uint32_t>().value());
+			packet->fields_.value2 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::value3))
@@ -80,7 +80,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value3 = (reader.read_le<uint32_t>().value());
+			packet->fields_.value3 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::value4))
@@ -89,7 +89,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value4 = (reader.read_le<uint32_t>().value());
+			packet->fields_.value4 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::value10))
@@ -98,7 +98,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.value10 = (reader.read_le<uint32_t>().value());
+			packet->fields_.value10 = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::data_length))
@@ -108,7 +108,7 @@ namespace worms_server
 				return {.status = net::packet_parse_status::partial};
 			}
 
-			const auto data_length = reader.read_le<uint32_t>().value();
+			const auto data_length = *reader.read_le<uint32_t>();
 			if (data_length > max_data_length)
 			{
 				return {
@@ -135,8 +135,7 @@ namespace worms_server
 			}
 			else
 			{
-				const auto bytes = reader.read_bytes(packet->data_length()).
-										  value();
+				const auto bytes = *reader.read_bytes(packet->data_length());
 				// Ensure we have at least one byte for null terminator
 				if (bytes.empty() || bytes.back() != std::byte{0})
 				{
@@ -183,7 +182,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			packet->fields_.error = (reader.read_le<uint32_t>().value());
+			packet->fields_.error = *reader.read_le<uint32_t>();
 		}
 
 		if (has_flag(flags, packet_flags::name))
@@ -192,8 +191,7 @@ namespace worms_server
 			{
 				return {.status = net::packet_parse_status::partial};
 			}
-			const auto name_encoded_bytes = reader.read_bytes(max_name_length).
-												   value();
+			const auto name_encoded_bytes = *reader.read_bytes(max_name_length);
 
 			// Find the first null terminator or use the whole buffer
 			const auto terminator_pos = std::ranges::find(
@@ -243,7 +241,7 @@ namespace worms_server
 				};
 			}
 
-			session_info info = data.value();
+			session_info info = *data;
 			info.game_release = 49;
 			packet->fields_.session_info = info;
 		}
@@ -291,7 +289,7 @@ namespace worms_server
 
 		if (fields_.data)
 		{
-			if (fields_.data.value().empty())
+			if (fields_.data->empty())
 			{
 				writer.write_le<uint32_t>(0);
 			}
@@ -316,7 +314,7 @@ namespace worms_server
 
 		if (fields_.name)
 		{
-			const auto encoded = windows_1251::encode(fields_.name.value());
+			const auto encoded = windows_1251::encode(*fields_.name);
 			const auto encoded_bytes = std::as_bytes(std::span{encoded});
 
 			// Name is a fixed size string of 20 chars
@@ -333,8 +331,8 @@ namespace worms_server
 
 		if (fields_.session_info)
 		{
-			const auto& info = fields_.session_info.value();
-			info.write_to(writer);
+			const auto& info = fields_.session_info;
+			info->write_to(writer);
 		}
 	}
 

@@ -78,9 +78,9 @@ namespace worms_server
             co_return false;
         }
 
-        const auto& target_id = packet->fields().value3.value();
+        const auto& target_id = *packet->fields().value3;
         const auto client_room_id = client_user->get_room_id();
-        const auto& message = packet->fields().data.value();
+        const string_view message = *packet->fields().data;
         const auto client_id = client_user->get_id();
 
         if (message.starts_with(std::format("GRP:[ {} ]  ", client_user->get_name())))
@@ -93,7 +93,7 @@ namespace worms_server
                     packet_code::chat_room,
                     {
                         .value0 = client_id, .value3 = client_room_id,
-                        .data = message
+                        .data = message.data()
                     });
 
                 for (const auto& user : database->get_users())
@@ -133,7 +133,7 @@ namespace worms_server
             // Notify Target
             target_user->send_packet(worms_packet::freeze(
                 packet_code::chat_room,
-                {.value0 = client_id, .value3 = target_id, .data = message}));
+                {.value0 = client_id, .value3 = target_id, .data = message.data()}));
 
             // Notify Sender
             client_user->send_packet(
@@ -258,7 +258,7 @@ namespace worms_server
         }
 
         // Check if the room name is valid is not already taken.
-        const auto requested_room_name = packet->fields().name.value();
+        const string_view requested_room_name = *packet->fields().name;
         if (std::ranges::any_of(database->get_rooms(),
             [requested_room_name](const auto& room) -> bool
             {
@@ -277,7 +277,7 @@ namespace worms_server
         const auto room_id = database::get_next_id();
         const auto room = std::make_shared<worms_server::room>(
             room_id,
-            packet->fields().name.value(),
+            *packet->fields().name,
             packet->fields().session_info->nation,
             client_user->get_address());
         database::get_instance()->add_room(room);
@@ -321,13 +321,13 @@ namespace worms_server
         // Require a valid room or game ID.
         // Check rooms
         if (std::ranges::any_of(database->get_rooms(),
-            [join_id = packet->fields().value2.value()](
+            [join_id = packet->fields().value2](
             const auto& room) -> bool
             {
                 return room->get_id() == join_id;
             }))
         {
-            client_user->set_room_id(packet->fields().value2.value());
+            client_user->set_room_id(*packet->fields().value2);
 
             // Notify other users about the join.
             const auto packet_bytes = worms_packet::freeze(packet_code::join,
@@ -348,7 +348,7 @@ namespace worms_server
 
         // Check games
         if (std::ranges::any_of(database->get_games(),
-            [join_id = packet->fields().value2.value(),
+            [join_id = *packet->fields().value2,
                 room_id = client_user->get_room_id()](
             const auto& game) -> bool
             {
@@ -391,7 +391,7 @@ namespace worms_server
         }
 
         // Require valid room ID (never sent for games, users disconnect if leaving a game).
-        if (packet->fields().value2.value() == client_user->get_room_id())
+        if (packet->fields().value2 == client_user->get_room_id())
         {
             co_await leave_room(database->get_room(client_user->get_room_id()),
                 client_user->get_id());
@@ -448,7 +448,7 @@ namespace worms_server
         ip::address parsed_ip;
         try
         {
-            parsed_ip = ip::make_address(packet->fields().data.value());
+            parsed_ip = ip::make_address(*packet->fields().data);
         }
         catch (const error_code& e)
         {
@@ -466,7 +466,7 @@ namespace worms_server
                 client_user->get_session_info().nation,
                 client_user->get_room_id(),
                 client_user->get_address(),
-                packet->fields().session_info.value().access);
+                packet->fields().session_info->access);
             database->add_game(game);
 
             // Notify other users about the new game, even those in other rooms.
@@ -518,7 +518,7 @@ namespace worms_server
 
         // Require valid game ID and user to be in appropriate room.
         const auto games = database->get_games();
-        const auto game_id = packet->fields().value0.value();
+        const auto game_id = packet->fields().value0;
         const auto room_id = client_user->get_room_id();
         const auto it = std::ranges::find_if(games,
             [game_id, room_id](const auto& game) -> bool
