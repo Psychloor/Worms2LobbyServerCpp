@@ -33,7 +33,6 @@ namespace worms_server
         io_context io_context_;
         strand<io_context::executor_type> strand_;
         signal_set signals_;
-        std::vector<std::jthread> threads_;
     };
 }
 
