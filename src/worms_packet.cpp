@@ -331,7 +331,7 @@ namespace worms_server
         if (fields_.session_info)
         {
             const auto& info = fields_.session_info.value();
-            write_session_info(writer, info);
+            info.write_to(writer);
         }
     }
 

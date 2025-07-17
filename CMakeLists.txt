@@ -70,6 +70,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/user_session.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/packet_handler.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/session_info.cpp
 )
 
 # Dependencies
