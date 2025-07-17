@@ -41,11 +41,6 @@ else ()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif ()
 
-# Windows-specific definitions
-if (WIN32)
-    add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 or later
-endif ()
-
 
 # Set variables for different source/header files
 set(LIBHEADERS
