@@ -18,7 +18,6 @@
 
 namespace worms_server
 {
-
 	static awaitable<void> leave_room(const std::shared_ptr<room>& room,
 									  uint32_t left_id)
 	{
@@ -138,8 +137,10 @@ namespace worms_server
 		co_return;
 	}
 
-	user_session::user_session(ip::tcp::socket socket): database_(database::get_instance()),
-		socket_(std::move(socket)), timer_(socket_.get_executor())
+	user_session::user_session(ip::tcp::socket socket):
+		database_(database::get_instance()),
+		socket_(std::move(socket)), timer_(socket_.get_executor()),
+		strand_(socket_.get_executor())
 	{
 		timer_.expires_at(std::chrono::steady_clock::time_point::max());
 		server::connection_count.fetch_add(1, std::memory_order_relaxed);
@@ -218,7 +219,8 @@ namespace worms_server
 			while (!is_shutting_down_)
 			{
 				// Collect available packets
-				while (packets_.try_dequeue(consumer_token, packet) && packet_batch.size() < 16)
+				while (packets_.try_dequeue(consumer_token, packet) &&
+					packet_batch.size() < 16)
 				{
 					packet_batch.push_back(std::move(packet));
 				}
@@ -235,7 +237,8 @@ namespace worms_server
 					}
 
 					error_code ec;
-					co_await async_write(socket_, buffers, redirect_error(use_awaitable, ec));
+					co_await async_write(socket_, buffers,
+										 redirect_error(use_awaitable, ec));
 
 
 					if (ec) co_return; // socket closed/reset
@@ -435,7 +438,8 @@ namespace worms_server
 					reader.append(incoming.data(), read);
 					while (true)
 					{
-						const auto [status, data, error] = reader.try_read_packet();
+						const auto [status, data, error] = reader.
+							try_read_packet();
 						if (status == net::packet_parse_status::partial)
 						{
 							// Needs more data
@@ -450,7 +454,9 @@ namespace worms_server
 							co_return;
 						}
 
-						spdlog::debug("Received packet code {} from {}", static_cast<uint32_t>(data.value()->code()), username);
+						spdlog::debug("Received packet code {} from {}",
+									  static_cast<uint32_t>(data.value()->
+										  code()), username);
 
 						if (!co_await packet_handler::handle_packet(
 							user_,

@@ -31,7 +31,6 @@ namespace worms_server
 
         thread_pool thread_pool_;
         io_context io_context_;
-        strand<io_context::executor_type> strand_;
         signal_set signals_;
     };
 }

@@ -45,6 +45,7 @@ namespace worms_server
 
         asio::steady_timer timer_;
         moodycamel::ConcurrentQueue<net::shared_bytes_ptr> packets_;
+        asio::strand<asio::any_io_executor> strand_;
     };
 }
 

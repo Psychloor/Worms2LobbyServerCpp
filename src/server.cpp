@@ -15,7 +15,6 @@ namespace worms_server
 	server::server(const uint16_t port, const size_t max_connections)
 		: port_(port), max_connections_(max_connections),
 		  thread_pool_(std::max(1u, std::thread::hardware_concurrency())),
-		  strand_(io_context_.get_executor()),
 		  signals_(io_context_, SIGINT, SIGTERM)
 	{
 		signals_.async_wait([this](const error_code&, int)
@@ -61,9 +60,9 @@ namespace worms_server
 				socket.set_option(ip::tcp::no_delay(true));
 				socket.set_option(ip::tcp::socket::keep_alive(true));
 
-				const auto session = std::make_shared<
-					user_session>(std::move(socket));
-				co_spawn(strand_, std::move(session)->run(), detached);
+				const auto session = std::make_shared<user_session>(
+					std::move(socket));
+				co_spawn(io_context_, std::move(session)->run(), detached);
 			}
 			else
 			{
