@@ -6,15 +6,15 @@
 #define USER_SESSION_HPP
 
 #include <asio.hpp>
-#include "packet_buffers.hpp"
 #include "concurrentqueue/concurrentqueue.h"
+#include "packet_buffers.hpp"
 
 namespace worms_server
 {
     class database;
     class room;
     class user;
-}
+} // namespace worms_server
 
 namespace worms_server
 {
@@ -47,6 +47,6 @@ namespace worms_server
         moodycamel::ConcurrentQueue<net::shared_bytes_ptr> packets_;
         asio::strand<asio::any_io_executor> strand_;
     };
-}
+} // namespace worms_server
 
-#endif //USER_SESSION_HPP
+#endif // USER_SESSION_HPP

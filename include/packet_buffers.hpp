@@ -51,10 +51,8 @@ namespace net
         // Helper for view comparison
         [[nodiscard]] bool view_equals(const bytes_base& other) const noexcept
         {
-            return size() == other.size() && std::equal(
-                data(),
-                data() + size(),
-                other.data());
+            return size() == other.size() &&
+                std::equal(data(), data() + size(), other.data());
         }
 
 
@@ -65,9 +63,9 @@ namespace net
     // Immutable shared bytes implementation
     struct shared_bytes final : bytes_base<shared_bytes>
     {
-        explicit shared_bytes(std::vector<byte>&& data)
-        : data_(std::move(data))
-        {}
+        explicit shared_bytes(std::vector<byte>&& data) : data_(std::move(data))
+        {
+        }
 
         [[nodiscard]] const byte* data() const noexcept override
         {
@@ -106,7 +104,8 @@ namespace net
             buffer_.reserve(bytes);
         }
 
-        template <typename T> requires std::is_trivially_copyable_v<T>
+        template <typename T>
+            requires std::is_trivially_copyable_v<T>
         constexpr void write(const T& value)
         {
             const auto bytes = std::as_bytes(std::span{&value, 1});
@@ -118,20 +117,21 @@ namespace net
             std::ranges::copy(bytes, std::back_inserter(buffer_));
         }
 
-        template <typename T> requires std::is_integral_v<T>
+        template <typename T>
+            requires std::is_integral_v<T>
         constexpr void write_le(T v)
         {
             write(std::endian::native == std::endian::little
-                  ? v
-                  : std::byteswap(v));
+                      ? v
+                      : std::byteswap(v));
         }
 
-        template <typename T> requires std::is_integral_v<T>
+        template <typename T>
+            requires std::is_integral_v<T>
         constexpr void write_be(T v)
         {
-            write(std::endian::native == std::endian::big
-                  ? v
-                  : std::byteswap(v));
+            write(std::endian::native == std::endian::big ? v
+                                                          : std::byteswap(v));
         }
 
         void write_c_string(std::string_view str)
@@ -159,9 +159,8 @@ namespace net
         // Efficient append from shared_bytes
         void append_bytes(const shared_bytes& bytes)
         {
-            buffer_.insert(std::end(buffer_),
-                bytes.data(),
-                bytes.data() + bytes.size());
+            buffer_.insert(std::end(buffer_), bytes.data(),
+                           bytes.data() + bytes.size());
         }
 
 
@@ -179,12 +178,14 @@ namespace net
     public:
         // Constructors with deduction guides
         constexpr explicit packet_reader(
-            const std::span<const std::byte> data) noexcept : data_(data),
-                                                              consumed_(0)
-        {}
+            const std::span<const std::byte> data) noexcept :
+            data_(data), consumed_(0)
+        {
+        }
 
         // Core reading operations with std::expected for error handling
-        template <typename T> requires std::is_trivially_copyable_v<T>
+        template <typename T>
+            requires std::is_trivially_copyable_v<T>
         [[nodiscard]] constexpr std::expected<T, std::error_code> read()
         {
             if (consumed_ + sizeof(T) > data_.size())
@@ -200,8 +201,8 @@ namespace net
         }
 
         // Byte span reading
-        [[nodiscard]] constexpr std::expected<
-            std::span<const byte>, std::error_code>
+        [[nodiscard]] constexpr std::expected<std::span<const byte>,
+                                              std::error_code>
         // ReSharper disable once CppDFAUnreachableFunctionCall
         read_bytes(const size_t len)
         {
@@ -218,11 +219,13 @@ namespace net
 
 
         // Endian-aware integral reading
-        template <typename T> requires std::is_integral_v<T>
+        template <typename T>
+            requires std::is_integral_v<T>
         [[nodiscard]] constexpr std::expected<T, std::error_code> read_le()
         {
             auto v = read<T>();
-            if (!v) return std::unexpected(v.error());
+            if (!v)
+                return std::unexpected(v.error());
 
             if constexpr (std::endian::native == std::endian::little)
             {
@@ -235,11 +238,13 @@ namespace net
         }
 
         // Endian-aware integral reading
-        template <typename T> requires std::is_integral_v<T>
+        template <typename T>
+            requires std::is_integral_v<T>
         [[nodiscard]] constexpr std::expected<T, std::error_code> read_be()
         {
             auto v = read<T>();
-            if (!v) return std::unexpected(v.error());
+            if (!v)
+                return std::unexpected(v.error());
 
             if constexpr (std::endian::native == std::endian::big)
             {
@@ -254,17 +259,19 @@ namespace net
 
         [[nodiscard]] constexpr std::optional<std::string> read_c_string()
         {
-            const auto start = std::begin(data_) + static_cast<ptrdiff_t>(
-                consumed_);
+            const auto start =
+                std::begin(data_) + static_cast<ptrdiff_t>(consumed_);
             const auto end = std::end(data_);
             const auto null_term = std::find(start, end, byte{0});
 
-            if (null_term == end) return std::nullopt;
+            if (null_term == end)
+                return std::nullopt;
 
             const size_t str_len = null_term - start;
             consumed_ += str_len + 1; // +1 for null terminator
 
-            // reinterpret_cast ok here: std::byte is layout-compatible with char
+            // reinterpret_cast ok here: std::byte is layout-compatible with
+            // char
             return std::string{reinterpret_cast<const char*>(&start), str_len};
         }
 
@@ -279,10 +286,8 @@ namespace net
                 {
                     return std::string_view{
                         reinterpret_cast<const char*>(bytes->data()),
-                        static_cast<unsigned long long>(std::distance(
-                            bytes->begin(),
-                            null_pos))
-                    };
+                        static_cast<unsigned long long>(
+                            std::distance(bytes->begin(), null_pos))};
                 }
             }
             return std::unexpected(
@@ -293,17 +298,19 @@ namespace net
         read_fixed_string(const size_t size)
         {
             const auto bytes = read_bytes(size);
-            if (!bytes) return std::unexpected(bytes.error());
+            if (!bytes)
+                return std::unexpected(bytes.error());
             return std::string_view{
-                reinterpret_cast<const char*>(bytes->data()), bytes->size()
-            };
+                reinterpret_cast<const char*>(bytes->data()), bytes->size()};
         }
 
 
         // ---------------------------------------------------------------------
-        // Zero‑copy struct view via std::bit_cast – returns T by value (no memcpy)
+        // Zero‑copy struct view via std::bit_cast – returns T by value (no
+        // memcpy)
         // ---------------------------------------------------------------------
-        template <typename T> requires std::is_trivially_copyable_v<T>
+        template <typename T>
+            requires std::is_trivially_copyable_v<T>
         std::expected<T, std::error_code> view_struct()
         {
             if (!can_read(sizeof(T)))
@@ -311,8 +318,8 @@ namespace net
                     std::make_error_code(std::errc::message_size));
             // bit_cast performs compile‑time memcpy, no alignment requirement
             T v = std::bit_cast<T>(
-                *reinterpret_cast<const std::array<byte, sizeof(T)>*>(data_.
-                    begin() + static_cast<ptrdiff_t>(consumed_)));
+                *reinterpret_cast<const std::array<byte, sizeof(T)>*>(
+                    data_.begin() + static_cast<ptrdiff_t>(consumed_)));
             consumed_ += sizeof(T);
             return v;
         }
@@ -325,10 +332,9 @@ namespace net
 
         [[nodiscard]] constexpr std::span<const byte> remaining() const noexcept
         {
-            return std::span{
-                std::begin(data_) + static_cast<ptrdiff_t>(consumed_),
-                data_.size_bytes() - consumed_
-            };
+            return std::span{std::begin(data_) +
+                                 static_cast<ptrdiff_t>(consumed_),
+                             data_.size_bytes() - consumed_};
         }
 
         [[nodiscard]] constexpr size_t bytes_read() const noexcept
@@ -342,10 +348,7 @@ namespace net
         }
 
         // Reset the reader to the beginning of the buffer
-        constexpr void reset() noexcept
-        {
-            consumed_ = 0;
-        }
+        constexpr void reset() noexcept { consumed_ = 0; }
 
     private:
         std::span<const byte> data_;

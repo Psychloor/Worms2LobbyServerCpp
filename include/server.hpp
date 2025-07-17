@@ -33,6 +33,6 @@ namespace worms_server
         io_context io_context_;
         signal_set signals_;
     };
-}
+} // namespace worms_server
 
-#endif //SERVER_HPP
+#endif // SERVER_HPP

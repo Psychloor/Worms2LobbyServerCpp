@@ -40,26 +40,26 @@ namespace worms_server
     {
         switch (code)
         {
-            case static_cast<uint32_t>(packet_code::list_rooms):
-            case static_cast<uint32_t>(packet_code::list_users):
-            case static_cast<uint32_t>(packet_code::list_games):
-            case static_cast<uint32_t>(packet_code::create_room):
-            case static_cast<uint32_t>(packet_code::join):
-            case static_cast<uint32_t>(packet_code::leave):
-            case static_cast<uint32_t>(packet_code::close):
-            case static_cast<uint32_t>(packet_code::create_game):
-            case static_cast<uint32_t>(packet_code::chat_room):
-            case static_cast<uint32_t>(packet_code::connect_game):
-                return true;
+        case static_cast<uint32_t>(packet_code::list_rooms):
+        case static_cast<uint32_t>(packet_code::list_users):
+        case static_cast<uint32_t>(packet_code::list_games):
+        case static_cast<uint32_t>(packet_code::create_room):
+        case static_cast<uint32_t>(packet_code::join):
+        case static_cast<uint32_t>(packet_code::leave):
+        case static_cast<uint32_t>(packet_code::close):
+        case static_cast<uint32_t>(packet_code::create_game):
+        case static_cast<uint32_t>(packet_code::chat_room):
+        case static_cast<uint32_t>(packet_code::connect_game):
+            return true;
 
-            // since the reader relies on this, need to add login here for it
-            case static_cast<uint32_t>(packet_code::login):
-                return true;
+        // since the reader relies on this, need to add login here for it
+        case static_cast<uint32_t>(packet_code::login):
+            return true;
 
-            default:
-                return false;
+        default:
+            return false;
         }
     }
-}
+} // namespace worms_server
 
-#endif //PACKET_CODE_HPP
+#endif // PACKET_CODE_HPP

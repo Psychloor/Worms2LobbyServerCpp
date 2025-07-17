@@ -23,6 +23,6 @@ namespace net
         std::optional<T> data;
         std::optional<E> error;
     };
-}
+} // namespace net
 
-#endif //FRAMED_DESERIALIZATION_RESULT_HPP
+#endif // FRAMED_DESERIALIZATION_RESULT_HPP

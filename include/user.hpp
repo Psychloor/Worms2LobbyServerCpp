@@ -23,15 +23,10 @@ namespace worms_server
     class user
     {
     public:
-        explicit user(const std::shared_ptr<user_session>& session,
-            uint32_t id,
-            std::string_view name,
-            nation nation);
+        explicit user(const std::shared_ptr<user_session>& session, uint32_t id,
+                      std::string_view name, nation nation);
 
-        ~user()
-        {
-            spdlog::debug("User {} has been destroyed", id_);
-        }
+        ~user() { spdlog::debug("User {} has been destroyed", id_); }
 
         [[nodiscard]] uint32_t get_id() const;
         [[nodiscard]] std::string_view get_name() const;
@@ -50,6 +45,6 @@ namespace worms_server
         std::atomic<uint32_t> room_id_;
         std::weak_ptr<user_session> session_;
     };
-}
+} // namespace worms_server
 
-#endif //USER_HPP
+#endif // USER_HPP

@@ -36,15 +36,9 @@ namespace net
             return {buffer_};
         }
 
-        void reserve(const size_t capacity)
-        {
-            buffer_.reserve(capacity);
-        }
+        void reserve(const size_t capacity) { buffer_.reserve(capacity); }
 
-        void clear() noexcept
-        {
-            buffer_.clear();
-        }
+        void clear() noexcept { buffer_.clear(); }
 
         deserialization_result<worms_server::worms_packet_ptr, std::string>
         try_read_packet()
@@ -72,12 +66,14 @@ namespace net
                     else
                     {
                         buffer_.erase(std::cbegin(buffer_),
-                            std::cbegin(buffer_) + static_cast<ptrdiff_t>(consumed));
+                                      std::cbegin(buffer_) +
+                                          static_cast<ptrdiff_t>(consumed));
                     }
 
                     // Shrink buffer if it's too large
-                    if (buffer_.capacity() > 16384U && buffer_.size() < (buffer_
-                       .capacity() >> 2)) // Divide by 4
+                    if (buffer_.capacity() > 16384U &&
+                        buffer_.size() <
+                            (buffer_.capacity() >> 2)) // Divide by 4
                     {
                         buffer_.shrink_to_fit();
                     }
@@ -90,6 +86,6 @@ namespace net
     private:
         std::vector<std::byte> buffer_;
     };
-}
+} // namespace net
 
-#endif //FRAMED_PACKET_READER_HPP
+#endif // FRAMED_PACKET_READER_HPP

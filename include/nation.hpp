@@ -118,4 +118,4 @@ namespace worms_server
         max
     };
 }
-#endif //NATION_HPP
+#endif // NATION_HPP
