@@ -54,44 +54,7 @@ namespace worms_server
 
 		[[nodiscard]] const packet_fields& fields() const;
 
-		constexpr auto get_flags_from_fields(this const auto& self)
-		{
-			uint32_t flags = 0;
-			if (self.fields_.value0)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value0);
-			if (self.fields_.value1)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value1);
-			if (self.fields_.value2)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value2);
-			if (self.fields_.value3)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value3);
-			if (self.fields_.value4)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value4);
-			if (self.fields_.value10)
-				flags |= static_cast<uint32_t>(
-					packet_flags::value10);
-			if (self.fields_.data_length || self.fields_.data)
-				flags |=
-					static_cast<uint32_t>(packet_flags::data_length);
-			if (self.fields_.data)
-				flags |= static_cast<uint32_t>(
-					packet_flags::data);
-			if (self.fields_.error)
-				flags |= static_cast<uint32_t>(
-					packet_flags::error);
-			if (self.fields_.name)
-				flags |= static_cast<uint32_t>(
-					packet_flags::name);
-			if (self.fields_.session_info)
-				flags |= static_cast<uint32_t>(
-					packet_flags::session_info);
-			return flags;
-		}
+		constexpr uint32_t get_flags_from_fields() const;
 
 		template <packet_code Code>
 		static const net::shared_bytes_ptr& get_cached_packet()
