@@ -24,14 +24,18 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 
-# Windows-specific settings
+# Multithreading support
 if(WIN32)
     add_definitions(-D_WIN32_WINNT=0x0601)
     if(MSVC)
         add_definitions(-D_WIN32_WINNT=0x0601 -D_CRT_SECURE_NO_WARNINGS)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
+else()
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
 endif()
+
 
 
 # Compiler warnings
@@ -104,6 +108,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        $<$<NOT:$<PLATFORM_ID:Windows>>:Threads::Threads>
         asio::asio
         spdlog::spdlog
         unofficial::concurrentqueue::concurrentqueue
