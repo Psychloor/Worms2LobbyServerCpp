@@ -167,20 +167,19 @@ namespace worms_server
         auto self = shared_from_this();
 
         co_spawn(
-            socket_.get_executor(),
-            [self = shared_from_this()]() -> awaitable<void>
+            strand_, [self = shared_from_this()]() -> awaitable<void>
             { co_await self->writer(); }, detached);
 
         user_ = co_await handle_login();
         if (user_ == nullptr)
         {
             spdlog::error("Failed to login");
-            co_return;
         }
-
-        spdlog::info("User {} logged in", user_->get_name());
-
-        co_await handle_session();
+        else
+        {
+            spdlog::info("User {} logged in", user_->get_name());
+            co_await handle_session();
+        }
 
         co_await disconnect_user(user_);
         co_return;
@@ -203,10 +202,10 @@ namespace worms_server
         try
         {
             moodycamel::ConsumerToken consumer_token(packets_);
-            static constexpr auto flush_delay = std::chrono::milliseconds(100);
+            static constinit auto flush_delay = std::chrono::milliseconds(100);
 
             std::vector<net::shared_bytes_ptr> packet_batch;
-            std::vector<asio::const_buffer> buffers;
+            std::vector<const_buffer> buffers;
 
             net::shared_bytes_ptr packet;
 
@@ -263,7 +262,6 @@ namespace worms_server
 
     awaitable<std::shared_ptr<user>> user_session::handle_login()
     {
-        uint32_t user_id = 0;
         std::vector<std::byte> incoming(1024);
 
         steady_timer timer(socket_.get_executor());
@@ -272,6 +270,7 @@ namespace worms_server
 
         try
         {
+            uint32_t user_id = 0;
             // Start the timer
             timer.async_wait(
                 [&](const error_code& wait_ec)

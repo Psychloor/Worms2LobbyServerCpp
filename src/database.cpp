@@ -37,9 +37,14 @@ namespace worms_server
             instance->next_id_.store(id + 1, std::memory_order::relaxed);
         }
 
-        if (id == 0) // wrap-around (rare but possible)
+        // ReSharper disable once CppDFAConstantConditions
+        if (id == 0)
+        {
+            // wrap-around (rare but possible)
+            // ReSharper disable once CppDFAUnreachableCode
+            spdlog::critical("ID pool exhausted");
             throw std::overflow_error("ID pool exhausted");
-
+        }
         return id;
     }
 
@@ -122,7 +127,7 @@ namespace worms_server
         {
             if (user->get_room_id() == room_id)
             {
-                users.push_back(user);
+                users.emplace_back(user);
             }
         }
 

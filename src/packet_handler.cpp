@@ -13,6 +13,8 @@
 #include "user.hpp"
 #include "worms_packet.hpp"
 
+using namespace std::string_view_literals;
+
 namespace worms_server
 {
     static awaitable<void> leave_room(const std::shared_ptr<room>& room,
@@ -82,9 +84,9 @@ namespace worms_server
         const auto client_room_id = client_user->get_room_id();
         const string_view message = *packet->fields().data;
         const auto client_id = client_user->get_id();
+        const string_view client_name = client_user->get_name();
 
-        if (message.starts_with(
-                std::format("GRP:[ {} ]  ", client_user->get_name())))
+        if (message.starts_with(std::format("GRP:[ {} ]  "sv, client_name)))
         {
             // Check if the user can access the room.
             if (client_room_id == target_id)
@@ -117,8 +119,7 @@ namespace worms_server
             co_return true;
         }
 
-        if (message.starts_with(
-                std::format("PRV:[ {} ]  ", client_user->get_name())))
+        if (message.starts_with(std::format("PRV:[ {} ]  "sv, client_name)))
         {
             const auto& target_user = database->get_user(target_id);
             if (target_user == nullptr ||
@@ -247,7 +248,7 @@ namespace worms_server
             packet->fields().value4.value_or(0) != 0 ||
             packet->fields().data.value_or("").empty() ||
             packet->fields().name.value_or("").empty() ||
-            !packet->fields().session_info.has_value())
+            !packet->fields().session_info)
         {
             spdlog::error("Invalid packet data");
             co_return false;

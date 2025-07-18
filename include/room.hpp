@@ -6,6 +6,7 @@
 #define ROOM_HPP
 
 #include <asio/ip/address_v4.hpp>
+#include <shared_mutex>
 #include <string>
 
 #include "session_info.hpp"
@@ -13,6 +14,7 @@
 
 namespace worms_server
 {
+    class user;
     class room
     {
     public:
