@@ -26,7 +26,7 @@ namespace worms_server
             data_length;
         std::optional<std::string> name;
         std::optional<std::string> data;
-        std::optional<session_info> session_info;
+        std::optional<session_info> info;
         std::optional<uint32_t> error;
     };
 

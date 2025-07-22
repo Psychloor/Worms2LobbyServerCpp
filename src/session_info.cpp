@@ -10,7 +10,7 @@ namespace worms_server
                                const session_type type,
                                const session_access access)
     {
-        this->nation = nation;
+        this->player_nation = nation;
         this->type = type;
         this->access = access;
 
@@ -28,7 +28,7 @@ namespace worms_server
     {
         writer.write_le(crc1);
         writer.write_le(crc2);
-        writer.write_le(static_cast<uint8_t>(nation));
+        writer.write_le(static_cast<uint8_t>(player_nation));
         writer.write_le(game_version);
         writer.write_le(game_release);
         writer.write_le(static_cast<uint8_t>(type));
@@ -45,7 +45,7 @@ namespace worms_server
 
         info.crc1 = *reader.read_le<uint32_t>();
         info.crc2 = *reader.read_le<uint32_t>();
-        info.nation =
+        info.player_nation =
             static_cast<worms_server::nation>(*reader.read_le<uint8_t>());
         info.game_version = *reader.read_le<uint8_t>();
         info.game_release = *reader.read_le<uint8_t>();

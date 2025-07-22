@@ -229,7 +229,7 @@ namespace worms_server
 
             session_info info = *data;
             info.game_release = 49;
-            packet->fields_.session_info = info;
+            packet->fields_.info = info;
         }
 
         return {.status = net::packet_parse_status::complete,
@@ -312,9 +312,9 @@ namespace worms_server
             writer.write_bytes(buffer);
         }
 
-        if (fields_.session_info)
+        if (fields_.info)
         {
-            const auto& info = fields_.session_info;
+            const auto& info = fields_.info;
             info->write_to(writer);
         }
     }
@@ -357,7 +357,7 @@ namespace worms_server
             flags |= static_cast<uint32_t>(packet_flags::error);
         if (fields_.name)
             flags |= static_cast<uint32_t>(packet_flags::name);
-        if (fields_.session_info)
+        if (fields_.info)
             flags |= static_cast<uint32_t>(packet_flags::session_info);
         return flags;
     }

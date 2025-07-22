@@ -36,7 +36,7 @@ namespace worms_server
         static constexpr size_t padding_size = 35;
         uint32_t crc1{};
         uint32_t crc2{};
-        nation nation = nation::team17;
+        nation player_nation = nation::team17;
         uint8_t game_version{};
         uint8_t game_release{};
         session_type type = session_type::user;

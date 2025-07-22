@@ -325,7 +325,7 @@ namespace worms_server
             }
 
             if (const auto& fields = login_info->fields(); !fields.value1 ||
-                !fields.value4 || !fields.name || !fields.session_info)
+                !fields.value4 || !fields.name || !fields.info)
             {
                 spdlog::error("Not enough data in login packet");
                 co_return nullptr;
@@ -356,7 +356,7 @@ namespace worms_server
             user_id = database::get_next_id();
             const auto client_user = std::make_shared<user>(
                 shared_from_this(), user_id, username,
-                login_info->fields().session_info->nation);
+                login_info->fields().info->player_nation);
 
             // Notify other users we've logged in
             const auto packet_bytes = worms_packet::freeze(
@@ -364,7 +364,7 @@ namespace worms_server
                 {.value1 = user_id,
                  .value4 = 0,
                  .name = username.data(),
-                 .session_info = client_user->get_session_info()});
+                 .info = client_user->get_session_info()});
             for (const auto& user : database_->get_users())
             {
                 user->send_packet(packet_bytes);

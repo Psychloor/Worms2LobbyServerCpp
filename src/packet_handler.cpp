@@ -164,7 +164,7 @@ namespace worms_server
                 {.value1 = room->get_id(),
                  .name = std::string(room->get_name()),
                  .data = "",
-                 .session_info = room->get_session_info()}));
+                 .info = room->get_session_info()}));
         }
 
         client_user->send_packet(worms_packet::get_list_end_packet());
@@ -198,7 +198,7 @@ namespace worms_server
                 {.value1 = user->get_id(),
                  .name = std::string(user->get_name()),
                  .data = "",
-                 .session_info = user->get_session_info()}));
+                 .info = user->get_session_info()}));
         }
 
         client_user->send_packet(worms_packet::get_list_end_packet());
@@ -231,7 +231,7 @@ namespace worms_server
                 {.value1 = game->get_id(),
                  .name = std::string(game->get_name()),
                  .data = game->get_address().to_string(),
-                 .session_info = game->get_session_info()}));
+                 .info = game->get_session_info()}));
         }
 
         client_user->send_packet(worms_packet::get_list_end_packet());
@@ -248,7 +248,7 @@ namespace worms_server
             packet->fields().value4.value_or(0) != 0 ||
             packet->fields().data.value_or("").empty() ||
             packet->fields().name.value_or("").empty() ||
-            !packet->fields().session_info)
+            !packet->fields().info)
         {
             spdlog::error("Invalid packet data");
             co_return false;
@@ -272,7 +272,7 @@ namespace worms_server
         const auto room_id = database::get_next_id();
         const auto room = std::make_shared<worms_server::room>(
             room_id, *packet->fields().name,
-            packet->fields().session_info->nation, client_user->get_address());
+            packet->fields().info->player_nation, client_user->get_address());
         database::get_instance()->add_room(room);
 
 
@@ -282,7 +282,7 @@ namespace worms_server
                                   .value4 = 0,
                                   .name = std::string(room->get_name()),
                                   .data = "",
-                                  .session_info = room->get_session_info()});
+                                  .info = room->get_session_info()});
 
         // notify others
         for (const auto& user : database->get_users())
@@ -437,7 +437,7 @@ namespace worms_server
             packet->fields().value2.value_or(0) != client_user->get_room_id() ||
             packet->fields().value4.value_or(0) != 0x800 ||
             !packet->fields().data || !packet->fields().name ||
-            !packet->fields().session_info)
+            !packet->fields().info)
         {
             spdlog::error("Invalid packet data");
             co_return false;
@@ -461,9 +461,9 @@ namespace worms_server
             const auto game_id = database::get_next_id();
             const auto game = std::make_shared<worms_server::game>(
                 game_id, client_user->get_name(),
-                client_user->get_session_info().nation,
+                client_user->get_session_info().player_nation,
                 client_user->get_room_id(), client_user->get_address(),
-                packet->fields().session_info->access);
+                packet->fields().info->access);
             database->add_game(game);
 
             // Notify other users about the new game, even those in other rooms.
@@ -474,7 +474,7 @@ namespace worms_server
                  .value4 = 0x800,
                  .name = std::string(game->get_name()),
                  .data = game->get_address().to_string(),
-                 .session_info = game->get_session_info()});
+                 .info = game->get_session_info()});
             for (const auto& user : database->get_users())
             {
                 if (user->get_id() == client_user->get_id())
