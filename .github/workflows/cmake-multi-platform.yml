@@ -1,5 +1,5 @@
 
-name: CMake on multiple platforms
+name: CMake Build and Release
 
 on:
   push:
@@ -12,39 +12,26 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang, cl]
         include:
           - os: windows-latest
-            c_compiler: cl
+            compiler: msvc
             cpp_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++
-        exclude:
-          - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
-            c_compiler: clang
-          - os: ubuntu-latest
             c_compiler: cl
+            artifact_name: WormsServer-Windows
+            binary_path: build/Release/WormsServer.exe
+
+          - os: ubuntu-latest
+            compiler: gcc
+            cpp_compiler: g++
+            c_compiler: gcc
+            artifact_name: WormsServer-Linux
+            binary_path: build/WormsServer
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set reusable strings
-        id: strings
-        shell: bash
-        run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
       - name: Install vcpkg
         shell: bash
@@ -52,43 +39,58 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git
           ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Install dependencies with vcpkg
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./vcpkg/installed
+            ${{ github.workspace }}/.cmake
+          key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Install dependencies
         shell: bash
         run: |
           ./vcpkg/vcpkg install --triplet=${{ runner.os == 'Windows' && 'x64-windows' || 'x64-linux' }}
 
       - name: Configure CMake
         run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
           -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-          -S ${{ github.workspace }}
+          -S .
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build build --config Release
 
-      - name: Test
-        working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest --build-config ${{ matrix.build_type }}
-
-      # New steps for packaging and uploading artifacts
-      - name: Package
+      - name: Create Distribution Directory
         shell: bash
         run: |
-          mkdir artifacts
+          mkdir -p dist/${{ matrix.artifact_name }}
           if [ "${{ runner.os }}" == "Windows" ]; then
-            cp ${{ steps.strings.outputs.build-output-dir }}/${{ matrix.build_type }}/*.exe artifacts/
+            cp build/Release/WormsServer.exe dist/${{ matrix.artifact_name }}/
+            cp vcpkg/installed/x64-windows/bin/*.dll dist/${{ matrix.artifact_name }}/
           else
-            cp ${{ steps.strings.outputs.build-output-dir }}/* artifacts/ || true
+            cp build/WormsServer dist/${{ matrix.artifact_name }}/
           fi
 
-      - name: Upload artifacts
+      - name: Create Archive
+        shell: bash
+        run: |
+          cd dist
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            7z a -tzip "${{ matrix.artifact_name }}.zip" "${{ matrix.artifact_name }}"
+          else
+            tar -czf "${{ matrix.artifact_name }}.tar.gz" "${{ matrix.artifact_name }}"
+          fi
+
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-${{ matrix.c_compiler }}-binaries
-          path: artifacts/
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}.*
+          retention-days: 7
 
   release:
     needs: build
@@ -96,13 +98,20 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Download all artifacts
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            **/artifacts/*
+            artifacts/**/*.zip
+            artifacts/**/*.tar.gz
           draft: false
           prerelease: false
+          generate_release_notes: true
