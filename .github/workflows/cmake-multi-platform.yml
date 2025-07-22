@@ -5,7 +5,7 @@ on:
   push:
     branches: [ "master" ]
     tags:
-      - 'v*'  # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'
   pull_request:
     branches: [ "master" ]
 
@@ -21,14 +21,12 @@ jobs:
             cpp_compiler: cl
             c_compiler: cl
             artifact_name: WormsServer-Windows
-            binary_path: build/Release/WormsServer.exe
 
           - os: ubuntu-latest
             compiler: gcc
             cpp_compiler: g++
             c_compiler: gcc
             artifact_name: WormsServer-Linux
-            binary_path: build/WormsServer
 
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +48,9 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          ./vcpkg/vcpkg install --triplet=${{ runner.os == 'Windows' && 'x64-windows' || 'x64-linux' }}
+          ./vcpkg/vcpkg install asio:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
+          ./vcpkg/vcpkg install spdlog:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
+          ./vcpkg/vcpkg install concurrentqueue:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
 
       - name: Configure CMake
         run: >
@@ -64,32 +64,23 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Create Distribution Directory
+      - name: Package
         shell: bash
         run: |
-          mkdir -p dist/${{ matrix.artifact_name }}
+          mkdir -p dist
           if [ "${{ runner.os }}" == "Windows" ]; then
-            cp build/Release/WormsServer.exe dist/${{ matrix.artifact_name }}/
-            cp vcpkg/installed/x64-windows/bin/*.dll dist/${{ matrix.artifact_name }}/
+            cp build/Release/WormsServer.exe "dist/WormsServer.exe"
+            cd dist && 7z a "../${{ matrix.artifact_name }}.zip" "WormsServer.exe"
           else
-            cp build/WormsServer dist/${{ matrix.artifact_name }}/
-          fi
-
-      - name: Create Archive
-        shell: bash
-        run: |
-          cd dist
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            7z a -tzip "${{ matrix.artifact_name }}.zip" "${{ matrix.artifact_name }}"
-          else
-            tar -czf "${{ matrix.artifact_name }}.tar.gz" "${{ matrix.artifact_name }}"
+            cp build/WormsServer "dist/WormsServer"
+            cd dist && tar -czf "../${{ matrix.artifact_name }}.tar.gz" "WormsServer"
           fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.artifact_name }}.*
+          path: ${{ matrix.artifact_name }}.*
           retention-days: 7
 
   release:
@@ -102,9 +93,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R artifacts/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
