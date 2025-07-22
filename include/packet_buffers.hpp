@@ -134,12 +134,6 @@ namespace net
                                                           : std::byteswap(v));
         }
 
-        void write_c_string(std::string_view str)
-        {
-            write_bytes(std::as_bytes(std::span{str}));
-            write<byte>(byte{0}); // ok, note it's a NULL terminator
-        }
-
         // Accessors
         [[nodiscard]] constexpr std::span<const byte> span() const noexcept
         {
@@ -254,25 +248,6 @@ namespace net
             {
                 return std::byteswap(*v);
             }
-        }
-
-
-        [[nodiscard]] constexpr std::optional<std::string> read_c_string()
-        {
-            const auto start =
-                std::begin(data_) + static_cast<ptrdiff_t>(consumed_);
-            const auto end = std::end(data_);
-            const auto null_term = std::find(start, end, byte{0});
-
-            if (null_term == end)
-                return std::nullopt;
-
-            const size_t str_len = null_term - start;
-            consumed_ += str_len + 1; // +1 for null terminator
-
-            // reinterpret_cast ok here: std::byte is layout-compatible with
-            // char
-            return std::string{reinterpret_cast<const char*>(&start), str_len};
         }
 
         // Not null-terminated
