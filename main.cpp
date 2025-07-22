@@ -65,7 +65,7 @@ bool parse_command_line_arguments(const int argc,
         if (arg[0] == "-p" || arg[0] == "--port")
         {
             port = static_cast<uint16_t>(std::stoi(arg[1]));
-            if (port <= 1024 || port > 65535)
+            if (port <= 1024)
             {
                 std::cerr << "Invalid port number, defaulting to 17000\n";
                 port = 17000;

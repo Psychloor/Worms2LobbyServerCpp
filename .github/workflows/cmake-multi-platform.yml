@@ -3,6 +3,8 @@ name: CMake on multiple platforms
 on:
   push:
     branches: [ "master" ]
+    tags:
+      - 'v*'  # Push events to matching v*, i.e. v1.0, v20.15.10
   pull_request:
     branches: [ "master" ]
 
@@ -69,3 +71,37 @@ jobs:
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
+
+      # New steps for packaging and uploading artifacts
+      - name: Package
+        shell: bash
+        run: |
+          mkdir artifacts
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cp ${{ steps.strings.outputs.build-output-dir }}/${{ matrix.build_type }}/*.exe artifacts/
+          else
+            cp ${{ steps.strings.outputs.build-output-dir }}/* artifacts/ || true
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ runner.os }}-${{ matrix.c_compiler }}-binaries
+          path: artifacts/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            **/artifacts/*
+          draft: false
+          prerelease: false

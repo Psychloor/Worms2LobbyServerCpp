@@ -7,11 +7,10 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(WormsServer
-        VERSION 1.1.1
+        VERSION 1.2.0
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
-
 
 # Build configuration
 set(CMAKE_CXX_STANDARD 23)
@@ -35,15 +34,6 @@ else()
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 endif()
-
-
-
-# Compiler warnings
-if (MSVC)
-    add_compile_options(/W4)
-else ()
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif ()
 
 set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/nation.hpp
