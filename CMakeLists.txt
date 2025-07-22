@@ -7,7 +7,7 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(WormsServer
-        VERSION 1.2.0
+        VERSION 1.2.1
         LANGUAGES CXX
         DESCRIPTION "Worms game server"
 )
