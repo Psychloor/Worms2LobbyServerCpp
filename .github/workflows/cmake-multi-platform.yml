@@ -48,10 +48,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          ./vcpkg/vcpkg install asio:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
-          ./vcpkg/vcpkg install spdlog:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
-          ./vcpkg/vcpkg install concurrentqueue:${{ runner.os == 'Windows' && 'x64-windows-static' || 'x64-linux' }}
-
+          ./vcpkg/vcpkg install
       - name: Configure CMake
         run: >
           cmake -B build
