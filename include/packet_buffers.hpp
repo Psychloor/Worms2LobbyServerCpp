@@ -99,10 +99,7 @@ namespace net
         // Constructor
         constexpr packet_writer() noexcept = default;
 
-        constexpr void reserve(const size_t bytes)
-        {
-            buffer_.reserve(bytes);
-        }
+        constexpr void reserve(const size_t bytes) { buffer_.reserve(bytes); }
 
         template <typename T>
             requires std::is_trivially_copyable_v<T>
@@ -145,7 +142,8 @@ namespace net
             return buffer_.size();
         }
 
-        // Transfer ownership of the buffer to shared_bytes for downstream async use
+        // Transfer ownership of the buffer to shared_bytes for downstream async
+        // use
         [[nodiscard]] shared_bytes_ptr to_shared() &&
         {
             return make_shared_bytes(std::move(buffer_));
@@ -172,8 +170,7 @@ namespace net
     public:
         // Constructors with deduction guides
         constexpr explicit packet_reader(
-            const std::span<const std::byte> data) noexcept :
-            data_(data), consumed_(0)
+            const std::span<const std::byte> data) noexcept : data_(data)
         {
         }
 
@@ -248,6 +245,49 @@ namespace net
             {
                 return std::byteswap(*v);
             }
+        }
+
+        [[nodiscard]] std::expected<std::string, std::error_code>
+        read_c_string()
+        {
+            auto rem = remaining();
+            const auto null_pos = std::ranges::find(rem, std::byte{0});
+
+            if (null_pos == rem.end())
+            {
+                // No null terminator in the current buffer
+                return std::unexpected(
+                    std::make_error_code(std::errc::invalid_argument));
+            }
+
+            const auto offset = static_cast<size_t>(null_pos - rem.begin());
+
+            std::string str{reinterpret_cast<const char*>(rem.data()), offset};
+
+            consumed_ += offset + 1; // +1 to skip the null terminator
+            return std::move(str);
+        }
+
+        [[nodiscard]] constexpr std::expected<std::string, std::error_code>
+        read_c_string_limited(const size_t max_len)
+        {
+            auto rem = remaining();
+            const auto len = std::min(rem.size(), max_len);
+
+            const auto null_pos =
+                std::ranges::find(rem.first(len), std::byte{0});
+            if (null_pos == rem.begin() + static_cast<ptrdiff_t>(len))
+            {
+                return std::unexpected(
+                    std::make_error_code(std::errc::invalid_argument));
+            }
+
+            const auto offset = static_cast<size_t>(null_pos - rem.begin());
+
+            std::string str{reinterpret_cast<const char*>(rem.data()), offset};
+
+            consumed_ += offset + 1;
+            return std::move(str);
         }
 
         // Not null-terminated
