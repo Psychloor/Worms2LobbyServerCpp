@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.31)
 
 # vcpkg integration
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+if (DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
             CACHE STRING "")
-endif()
+endif ()
 
 project(WormsServer
         VERSION 1.2.2
@@ -18,22 +18,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
 # Set default build type
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
-endif()
+endif ()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 
 # Multithreading support
-if(WIN32)
+if (WIN32)
     add_definitions(-D_WIN32_WINNT=0x0601)
-    if(MSVC)
+    if (MSVC)
         add_definitions(-D_WIN32_WINNT=0x0601 -D_CRT_SECURE_NO_WARNINGS)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif()
-else()
+    endif ()
+else ()
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
-endif()
+endif ()
 
 set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/nation.hpp
@@ -49,8 +49,6 @@ set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/user_session.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_handler.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/server.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_buffers.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/framed_packet_reader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/string_utils.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/windows_1252.hpp
 )
@@ -70,6 +68,14 @@ set(SOURCES
 # Dependencies
 find_package(asio CONFIG REQUIRED)
 find_package(unofficial-concurrentqueue CONFIG REQUIRED)
+
+include(FetchContent)
+FetchContent_Declare(
+        PacketIO
+        GIT_REPOSITORY https://github.com/Psychloor/PacketIO.git
+        GIT_TAG main
+)
+FetchContent_MakeAvailable(PacketIO)
 
 # Configure spdlog options
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE)
@@ -102,6 +108,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         asio::asio
         spdlog::spdlog
         unofficial::concurrentqueue::concurrentqueue
+        PacketIO::PacketIO
 )
 
 # Installation rules

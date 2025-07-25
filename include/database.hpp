@@ -1,20 +1,19 @@
 ﻿#ifndef DATABASE_HPP
 #define DATABASE_HPP
 
-#include <asio/ip/address_v4.hpp>
 #include <concurrentqueue/concurrentqueue.h>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
 
-namespace worms_server
-{
+#include <asio/ip/address_v4.hpp>
+
+namespace worms_server {
     class user;
     class room;
     class game;
 
-    class database : std::enable_shared_from_this<database>
-    {
+    class database : std::enable_shared_from_this<database> {
     public:
         [[nodiscard]] static std::shared_ptr<database> get_instance();
         [[nodiscard]] static uint32_t get_next_id();
@@ -28,10 +27,8 @@ namespace worms_server
         [[nodiscard]] std::vector<std::shared_ptr<room>> get_rooms() const;
         [[nodiscard]] std::vector<std::shared_ptr<game>> get_games() const;
 
-        [[nodiscard]] std::vector<std::shared_ptr<user>>
-        get_users_in_room(uint32_t room_id) const;
-        [[nodiscard]] std::shared_ptr<game>
-        get_game_by_name(std::string_view name) const;
+        [[nodiscard]] std::vector<std::shared_ptr<user>> get_users_in_room(uint32_t room_id) const;
+        [[nodiscard]] std::shared_ptr<game> get_game_by_name(std::string_view name) const;
 
         void set_user_room_id(uint32_t user_id, uint32_t room_id);
 

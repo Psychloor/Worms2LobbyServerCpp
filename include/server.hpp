@@ -11,10 +11,8 @@ using asio::awaitable;
 using asio::use_awaitable;
 using namespace asio;
 
-namespace worms_server
-{
-    class server
-    {
+namespace worms_server {
+    class server {
     public:
         server(uint16_t port, size_t max_connections);
 

@@ -5,24 +5,22 @@
 #ifndef USER_SESSION_HPP
 #define USER_SESSION_HPP
 
-#include <asio.hpp>
 #include "concurrentqueue/concurrentqueue.h"
-#include "packet_buffers.hpp"
 
-namespace worms_server
-{
+#include "packet_buffers.hpp"
+#include <asio.hpp>
+
+namespace worms_server {
     class database;
     class room;
     class user;
 } // namespace worms_server
 
-namespace worms_server
-{
+namespace worms_server {
     using asio::awaitable;
     using asio::use_awaitable;
 
-    class user_session final : public std::enable_shared_from_this<user_session>
-    {
+    class user_session final : public std::enable_shared_from_this<user_session> {
     public:
         explicit user_session(asio::ip::tcp::socket socket);
         ~user_session();

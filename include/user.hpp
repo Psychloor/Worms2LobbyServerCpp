@@ -5,28 +5,24 @@
 #ifndef USER_HPP
 #define USER_HPP
 
+#include "spdlog/spdlog.h"
 #include <memory>
 #include <string>
 
-#include <asio/ip/address_v4.hpp>
-
-
 #include "session_info.hpp"
 #include "worms_packet.hpp"
+#include <asio/ip/address_v4.hpp>
 
-#include "spdlog/spdlog.h"
-
-namespace worms_server
-{
+namespace worms_server {
     class user_session;
 
-    class user
-    {
+    class user {
     public:
-        explicit user(const std::shared_ptr<user_session>& session, uint32_t id,
-                      std::string_view name, nation nation);
+        explicit user(const std::shared_ptr<user_session>& session, uint32_t id, std::string_view name, nation nation);
 
-        ~user() { spdlog::debug("User {} has been destroyed", id_); }
+        ~user() {
+            spdlog::debug("User {} has been destroyed", id_);
+        }
 
         [[nodiscard]] uint32_t get_id() const;
         [[nodiscard]] std::string_view get_name() const;
