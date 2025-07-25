@@ -163,7 +163,7 @@ namespace worms_server
         }
 
         spdlog::debug("User session for {} destroyed",
-              user_ ? user_->get_name() : "unknown");
+                      user_ ? user_->get_name() : "unknown");
     }
 
     awaitable<void> user_session::run()
@@ -394,8 +394,10 @@ namespace worms_server
     {
         try
         {
+            net::framed_packet_reader<worms_packet_ptr, std::string> reader(
+                worms_packet::read_from);
+
             constexpr auto timeout_delay = std::chrono::minutes(10);
-            net::framed_packet_reader reader;
             const string_view username = user_->get_name();
 
             steady_timer timer(socket_.get_executor());

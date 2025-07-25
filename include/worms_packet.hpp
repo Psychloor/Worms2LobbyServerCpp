@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 
+#include "framed_packet_reader.hpp"
 #include "packet_buffers.hpp"
 #include "packet_code.hpp"
 #include "session_info.hpp"

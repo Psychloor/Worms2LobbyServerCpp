@@ -5,14 +5,12 @@
 #ifndef SESSION_INFO_HPP
 #define SESSION_INFO_HPP
 
-#include <algorithm>
 #include <array>
-#include <bit>
 #include <cstdint>
 
+#include "framed_packet_reader.hpp"
 #include "nation.hpp"
 
-#include "framed_deserialization_result.hpp"
 #include "packet_buffers.hpp"
 #include "spdlog/spdlog.h"
 
