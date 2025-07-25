@@ -23,24 +23,28 @@ namespace worms_server
     {
         const auto database = database::get_instance();
         const auto users = database->get_users();
+        const auto games = database->get_games();
         const uint32_t room_id = room == nullptr ? 0 : room->get_id();
 
 
         spdlog::debug("User Session: Leaving room {}", room_id);
+        const auto has_other_users =
+            std::ranges::any_of(users,
+                                [left_id, room_id](const auto& user)
+                                {
+                                    return user->get_id() != left_id &&
+                                        user->get_room_id() == room_id;
+                                });
 
-        const bool room_closed = room != nullptr &&
-            !std::ranges::any_of(users,
-                                 [left_id, room_id](const auto& user)
-                                 {
-                                     return user->get_id() != left_id &&
-                                         user->get_room_id() == room_id;
-                                 }) &&
-            !std::ranges::any_of(database->get_games(),
-                                 [left_id, room_id](const auto& game)
-                                 {
-                                     return game->get_id() != left_id &&
-                                         game->get_room_id() == room_id;
-                                 });
+        const auto has_other_games =
+            std::ranges::any_of(games,
+                                [left_id, room_id](const auto& game)
+                                {
+                                    return game->get_id() != left_id &&
+                                        game->get_room_id() == room_id;
+                                });
+
+        const bool room_closed = room && !has_other_users && !has_other_games;
 
         if (room_closed)
         {
@@ -158,7 +162,8 @@ namespace worms_server
             // Drain the queue
         }
 
-        spdlog::debug("User session destroyed");
+        spdlog::debug("User session for {} destroyed",
+              user_ ? user_->get_name() : "unknown");
     }
 
     awaitable<void> user_session::run()
@@ -174,12 +179,12 @@ namespace worms_server
         if (user_ == nullptr)
         {
             spdlog::error("Failed to login");
+            co_return;
         }
-        else
-        {
-            spdlog::info("User {} logged in", user_->get_name());
-            co_await handle_session();
-        }
+
+        spdlog::info("User {} logged in", user_->get_name());
+        co_await handle_session();
+
 
         co_await disconnect_user(user_);
         co_return;
@@ -202,7 +207,7 @@ namespace worms_server
         try
         {
             moodycamel::ConsumerToken consumer_token(packets_);
-            static constinit auto flush_delay = std::chrono::milliseconds(100);
+            constexpr auto flush_delay = std::chrono::milliseconds(100);
 
             std::vector<net::shared_bytes_ptr> packet_batch;
             std::vector<const_buffer> buffers;
@@ -359,12 +364,12 @@ namespace worms_server
                 login_info->fields().info->player_nation);
 
             // Notify other users we've logged in
-            const auto packet_bytes = worms_packet::freeze(
-                packet_code::login,
-                {.value1 = user_id,
-                 .value4 = 0,
-                 .name = username.data(),
-                 .info = client_user->get_session_info()});
+            const auto packet_bytes =
+                worms_packet::freeze(packet_code::login,
+                                     {.value1 = user_id,
+                                      .value4 = 0,
+                                      .name = username.data(),
+                                      .info = client_user->get_session_info()});
             for (const auto& user : database_->get_users())
             {
                 user->send_packet(packet_bytes);
@@ -403,7 +408,7 @@ namespace worms_server
                     timer.async_wait(
                         [&](const error_code& wait_ec)
                         {
-                            if (!wait_ec)
+                            if (!wait_ec && socket_.is_open())
                             {
                                 // Timer expired, close the socket
                                 socket_.close();
