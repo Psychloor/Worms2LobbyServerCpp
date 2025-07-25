@@ -99,7 +99,7 @@ namespace net
         // Constructor
         constexpr packet_writer() noexcept = default;
 
-        constexpr void reserve(const std::size_t bytes)
+        constexpr void reserve(const size_t bytes)
         {
             buffer_.reserve(bytes);
         }
@@ -114,7 +114,7 @@ namespace net
 
         constexpr void write_bytes(std::span<const byte> bytes)
         {
-            std::ranges::copy(bytes, std::back_inserter(buffer_));
+            buffer_.insert(std::end(buffer_), bytes.begin(), bytes.end());
         }
 
         template <typename T>
@@ -145,6 +145,7 @@ namespace net
             return buffer_.size();
         }
 
+        // Transfer ownership of the buffer to shared_bytes for downstream async use
         [[nodiscard]] shared_bytes_ptr to_shared() &&
         {
             return make_shared_bytes(std::move(buffer_));
@@ -153,8 +154,7 @@ namespace net
         // Efficient append from shared_bytes
         void append_bytes(const shared_bytes& bytes)
         {
-            buffer_.insert(std::end(buffer_), bytes.data(),
-                           bytes.data() + bytes.size());
+            write_bytes(bytes.view());
         }
 
 
@@ -251,7 +251,7 @@ namespace net
         }
 
         // Not null-terminated
-        [[nodiscard]] constexpr std::expected<std::string_view, std::error_code>
+        [[nodiscard]] constexpr std::expected<std::string, std::error_code>
         read_string(const size_t max_len)
         {
             if (auto bytes = read_bytes(max_len))
@@ -259,7 +259,7 @@ namespace net
                 if (const auto null_pos = std::ranges::find(*bytes, byte{0});
                     null_pos != bytes->end())
                 {
-                    return std::string_view{
+                    return std::string{
                         reinterpret_cast<const char*>(bytes->data()),
                         static_cast<unsigned long long>(
                             std::distance(bytes->begin(), null_pos))};
@@ -292,9 +292,9 @@ namespace net
                 return std::unexpected(
                     std::make_error_code(std::errc::message_size));
             // bit_cast performs compile‑time memcpy, no alignment requirement
-            T v = std::bit_cast<T>(
-                *reinterpret_cast<const std::array<byte, sizeof(T)>*>(
-                    data_.begin() + static_cast<ptrdiff_t>(consumed_)));
+            std::array<byte, sizeof(T)> temp;
+            std::memcpy(temp.data(), data_.data() + consumed_, sizeof(T));
+            T v = std::bit_cast<T>(temp);
             consumed_ += sizeof(T);
             return v;
         }
@@ -327,7 +327,7 @@ namespace net
 
     private:
         std::span<const byte> data_;
-        std::size_t consumed_ = 0;
+        size_t consumed_ = 0;
     };
 } // namespace net
 
