@@ -11,9 +11,12 @@
 #include "packet_code.hpp"
 #include "packet_flags.hpp"
 #include "windows_1251.hpp"
+#include "windows_1252.hpp"
 
 namespace worms_server
 {
+    std::atomic<bool> worms_packet::use_windows1252_encoding{false};
+
     net::shared_bytes_ptr worms_packet::freeze(const packet_code code,
                                                packet_fields fields)
     {
@@ -153,7 +156,7 @@ namespace worms_server
                                      "maximum length"};
                 }
 
-                const std::string decoded = windows_1251::decode(encoded);
+                const std::string decoded = decode_string(encoded);
 
                 // Add size check after decoding
                 if (decoded.length() > max_data_length)
@@ -187,10 +190,12 @@ namespace worms_server
             // Find the first null terminator or use the whole buffer
             const auto terminator_pos = std::ranges::find(
                 name_encoded_bytes, static_cast<std::byte>(0));
+            const auto length = static_cast<size_t>(terminator_pos -
+                                                    name_encoded_bytes.begin());
 
             const std::string name_encoded(
                 reinterpret_cast<const char*>(name_encoded_bytes.data()),
-                std::distance(std::begin(name_encoded_bytes), terminator_pos));
+                length);
 
             if (name_encoded.length() > max_name_length)
             {
@@ -200,7 +205,7 @@ namespace worms_server
                         "Name too long: encoded name exceeds maximum length"};
             }
 
-            const auto name_decoded = windows_1251::decode(name_encoded);
+            const auto name_decoded = decode_string(name_encoded);
 
             if (name_decoded.length() > max_name_length)
             {
@@ -234,6 +239,21 @@ namespace worms_server
 
         return {.status = net::packet_parse_status::complete,
                 .data = std::make_optional(std::move(packet))};
+    }
+
+    std::string worms_packet::encode_string(const std::string& input)
+    {
+        return use_windows1252_encoding.load(std::memory_order::relaxed)
+            ? windows_1252::encode(input)
+            : windows_1251::encode(input);
+    }
+
+
+    std::string worms_packet::decode_string(const std::string& input)
+    {
+        return use_windows1252_encoding.load(std::memory_order::relaxed)
+            ? windows_1252::decode(input)
+            : windows_1251::decode(input);
     }
 
     void worms_packet::write_to(net::packet_writer& writer) const
@@ -273,21 +293,12 @@ namespace worms_server
 
         if (fields_.data)
         {
-            if (fields_.data->empty())
-            {
-                writer.write_le<uint32_t>(0);
-            }
-            else
-            {
-                const auto encoded = windows_1251::encode(*fields_.data);
-                const auto encoded_bytes = std::as_bytes(std::span{encoded});
+            const auto& str = *fields_.data;
+            const auto encoded = encode_string(str);
 
-                writer.write_le(
-                    static_cast<uint32_t>(encoded_bytes.size_bytes() + 1));
-
-                writer.write_bytes(encoded_bytes);
-                writer.write(std::byte{0});
-            }
+            writer.write_le(static_cast<uint32_t>(encoded.size() + 1));
+            writer.write_bytes(std::as_bytes(std::span{encoded}));
+            writer.write(std::byte{0});
         }
 
         if (fields_.error)
@@ -297,7 +308,8 @@ namespace worms_server
 
         if (fields_.name)
         {
-            const auto encoded = windows_1251::encode(*fields_.name);
+            const auto encoded = encode_string(*fields_.name);
+
             const auto encoded_bytes = std::as_bytes(std::span{encoded});
 
             // Name is a fixed size string of 20 chars

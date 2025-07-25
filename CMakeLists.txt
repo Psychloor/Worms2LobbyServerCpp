@@ -53,6 +53,7 @@ set(HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/framed_packet_reader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/framed_deserialization_result.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/string_utils.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/windows_1252.hpp
 )
 
 set(SOURCES

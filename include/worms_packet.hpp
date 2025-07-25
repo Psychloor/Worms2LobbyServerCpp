@@ -35,6 +35,7 @@ namespace worms_server
     public:
         static constexpr size_t max_data_length = 0x200;
         static constexpr size_t max_name_length = 20;
+        static std::atomic<bool> use_windows1252_encoding;
 
         static net::shared_bytes_ptr freeze(packet_code code,
                                             packet_fields fields = {});
@@ -68,6 +69,9 @@ namespace worms_server
         }
 
     private:
+        static inline std::string encode_string(const std::string& input);
+        static inline std::string decode_string(const std::string& input);
+
         void write_to(net::packet_writer& writer) const;
         packet_code code_;
         uint32_t flags_;
