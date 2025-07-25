@@ -35,14 +35,12 @@ The following dependencies will be automatically installed through vcpkg:
 ## Building
 
 1. Clone the repository:
-```
-bash
+```shell
 git clone https://github.com/yourusername/WormsServer.git
 cd WormsServer
 ```
 2. Make sure vcpkg is properly set up:
-```
-bash
+```shell
 # Set VCPKG_ROOT environment variable (if not already set)
 # Windows (PowerShell):
 $env:VCPKG_ROOT="C:\path\to\vcpkg"
@@ -50,23 +48,20 @@ $env:VCPKG_ROOT="C:\path\to\vcpkg"
 export VCPKG_ROOT=/path/to/vcpkg
 ```
 3. Build the project:
-```
-bash
+```shell
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 ### Windows-Specific Setup
 If building on Windows, you might need to enable long paths:
-```
-powershell
+```powershell
 # Run as Administrator
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
 ```
 ## Usage
 
 Run the server with default settings:
-```
-bash
+```bash
 ./worms_server
 ```
 Available command-line options:
@@ -82,8 +77,7 @@ The server can be configured through command-line arguments and supports runtime
 ### Environment Variables
 - `SPDLOG_LEVEL`: Set the logging level (trace, debug, info, warn, error, critical)
 Example:
-```
-bash
+```bash
 # Windows (PowerShell):
 $env:SPDLOG_LEVEL="debug"
 # Linux/macOS:
