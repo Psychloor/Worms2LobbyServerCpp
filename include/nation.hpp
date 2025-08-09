@@ -1,121 +1,117 @@
-﻿//
-// Created by blomq on 2025-06-24.
-//
-
-#ifndef NATION_HPP
+﻿#ifndef NATION_HPP
 #define NATION_HPP
 
 #include <cstdint>
 
 namespace worms_server
 {
-    enum class nation : uint8_t
+    enum class Nation : uint8_t
     {
         /// <summary>No flag.</summary>
-        none,
+        None,
         /// <summary>United Kingdom</summary>
-        uk,
+        UnitedKingdom,
         /// <summary>Argentina</summary>
-        ar,
+        Argentina,
         /// <summary>Australia</summary>
-        au,
+        Australia,
         /// <summary>Austria</summary>
-        at,
+        Austria,
         /// <summary>Belgium</summary>
-        be,
+        Belgium,
         /// <summary>Brazil</summary>
-        br,
+        Brazil,
         /// <summary>Canada</summary>
-        ca,
+        Canada,
         /// <summary>Croatia</summary>
-        hr,
+        Croatia,
         /// <summary>Bosnia and Herzegovina (old flag)</summary>
-        ba,
+        BosniaAndHerzegovinaOldFlag,
         /// <summary>Cyprus</summary>
-        cy,
+        Cyprus,
         /// <summary>Czech Republic</summary>
-        cz,
+        CzechRepublic,
         /// <summary>Denmark</summary>
-        dk,
+        Denmark,
         /// <summary>Finland</summary>
-        fi,
+        Finland,
         /// <summary>France</summary>
-        fr,
+        France,
         /// <summary>Georgia</summary>
-        ge,
+        Georgia,
         /// <summary>Germany</summary>
-        de,
+        Germany,
         /// <summary>Greece</summary>
-        gr,
+        Greece,
         /// <summary>Hong Kong SAR</summary>
-        hk,
+        HongKong,
         /// <summary>Hungary</summary>
-        hu,
+        Hungary,
         /// <summary>Iceland</summary>
-        is,
+        Iceland,
         /// <summary>India</summary>
-        in,
+        India,
         /// <summary>Indonesia</summary>
-        id,
+        Indonesia,
         /// <summary>Iran</summary>
-        ir,
+        Iran,
         /// <summary>Iraq</summary>
-        iq,
+        Iraq,
         /// <summary>Ireland</summary>
-        ie,
+        Ireland,
         /// <summary>Israel</summary>
-        il,
+        Israel,
         /// <summary>Italy</summary>
-        it,
+        Italy,
         /// <summary>Japan</summary>
-        jp,
+        Japan,
         /// <summary>Liechtenstein</summary>
-        li,
+        Liechtenstein,
         /// <summary>Luxembourg</summary>
-        lu,
+        Luxembourg,
         /// <summary>Malaysia</summary>
-        my,
+        Malaysia,
         /// <summary>Malta</summary>
-        mt,
+        Malta,
         /// <summary>Mexico</summary>
-        mx,
+        Mexico,
         /// <summary>Morocco</summary>
-        ma,
+        Morocco,
         /// <summary>Netherlands</summary>
-        nl,
+        Netherlands,
         /// <summary>New Zealand</summary>
-        nz,
+        NewZealand,
         /// <summary>Norway</summary>
-        no,
+        Norway,
         /// <summary>Poland</summary>
-        pl,
+        Poland,
         /// <summary>Portugal</summary>
-        pt,
+        Portugal,
         /// <summary>Puerto Rico</summary>
-        pr,
+        PuertoRico,
         /// <summary>Romania</summary>
-        ro,
+        Romania,
         /// <summary>Russian Federation</summary>
-        ru,
+        RussianFederation,
         /// <summary>Singapore</summary>
-        sg,
+        Singapore,
         /// <summary>South Africa</summary>
-        za,
+        SouthAfrica,
         /// <summary>Spain</summary>
-        es,
+        Spain,
         /// <summary>Sweden</summary>
-        se,
+        Sweden,
         /// <summary>Switzerland</summary>
-        ch,
+        Switzerland,
         /// <summary>Turkey</summary>
-        tr,
+        Turkey,
         /// <summary>United States</summary>
-        us,
+        UnitedStates,
         /// <summary>Custom skull flag</summary>
-        skull,
+        CustomSkullFlag,
         /// <summary>Custom Team17 flag</summary>
-        team17,
-        max
+        CustomTeam17Flag,
+        Max
     };
 }
 #endif // NATION_HPP

@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-[[nodiscard]] inline bool equals_case_insensitive(const std::string_view a, const std::string_view b) {
+[[nodiscard]] inline bool EqualsCaseInsensitive(const std::string_view a, const std::string_view b) {
     if (a.length() != b.length()) {
         return false;
     }

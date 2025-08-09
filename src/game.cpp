@@ -7,28 +7,28 @@
 #include <utility>
 
 namespace worms_server {
-    game::game(const uint32_t id, const std::string_view name, const nation nation, const uint32_t room_id,
-        asio::ip::address_v4 address, const session_access access)
-        : id_(id), name_(name), session_info_{nation, session_type::game, access}, address_(std::move(address)),
-          room_id_(room_id) {}
+    Game::Game(const uint32_t id, const std::string_view name, const Nation nation, const uint32_t roomId,
+        asio::ip::address_v4 address, const SessionAccess access)
+        : id_(id), name_(name), sessionInfo_{nation, SessionType::Game, access}, address_(std::move(address)),
+          roomId_(roomId) {}
 
-    uint32_t game::get_id() const {
+    uint32_t Game::getId() const {
         return id_;
     }
 
-    std::string_view game::get_name() const {
+    std::string_view Game::getName() const {
         return name_;
     }
 
-    const session_info& game::get_session_info() const {
-        return session_info_;
+    const SessionInfo& Game::getSessionInfo() const {
+        return sessionInfo_;
     }
 
-    asio::ip::address_v4 game::get_address() const {
+    asio::ip::address_v4 Game::getAddress() const {
         return address_;
     }
 
-    uint32_t game::get_room_id() const {
-        return room_id_;
+    uint32_t Game::getRoomId() const {
+        return roomId_;
     }
 } // namespace worms_server

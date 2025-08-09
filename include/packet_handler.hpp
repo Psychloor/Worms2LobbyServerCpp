@@ -5,8 +5,8 @@
 #ifndef PACKET_ROUTER_HPP
 #define PACKET_ROUTER_HPP
 
-#include <memory>
 #include <asio.hpp>
+#include <memory>
 
 #include "worms_packet.hpp"
 
@@ -16,18 +16,18 @@ using namespace asio;
 
 namespace worms_server
 {
-    class user;
-    class database;
-    class worms_packet;
-    enum class packet_code : std::uint32_t;
+    class User;
+    class Database;
+    class WormsPacket;
+    enum class PacketCode : std::uint32_t;
 
-    class packet_handler final
+    class PacketHandler final
     {
     public:
-        static awaitable<bool> handle_packet(
-            const std::shared_ptr<user>& client_user,
-            const std::shared_ptr<database>& database,
-            const worms_packet_ptr& packet);
+        static awaitable<bool> handlePacket(
+            const std::shared_ptr<User>& clientUser,
+            const std::shared_ptr<Database>& database,
+            const WormsPacketPtr& packet);
     };
 }
 

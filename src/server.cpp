@@ -10,15 +10,15 @@
 
 
 namespace worms_server {
-    std::atomic<unsigned int> server::connection_count{0};
+    std::atomic<unsigned int> Server::connectionCount{0};
 
-    server::server(const uint16_t port, const size_t max_connections)
-        : port_(port), max_connections_(max_connections),
-          thread_pool_(std::max(1u, std::thread::hardware_concurrency())), signals_(io_context_, SIGINT, SIGTERM) {
+    Server::Server(const uint16_t port, const size_t maxConnections)
+        : port_(port), maxConnections_(maxConnections),
+          threadPool_(std::max(1u, std::thread::hardware_concurrency())), signals_(ioContext_, SIGINT, SIGTERM) {
         signals_.async_wait([this](const error_code&, int) { stop(); });
     }
 
-    awaitable<void> server::listener() {
+    awaitable<void> Server::listener() {
         auto executor = co_await this_coro::executor;
         ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), port_});
 
@@ -37,7 +37,7 @@ namespace worms_server {
             co_await acceptor.async_accept(socket, redirect_error(use_awaitable, ec));
 
             if (!ec) {
-                if (connection_count.load(std::memory_order_acquire) >= max_connections_) {
+                if (connectionCount.load(std::memory_order_acquire) >= maxConnections_) {
                     spdlog::warn("Too many connections, refusing client");
                     socket.close();
                     continue;
@@ -46,31 +46,31 @@ namespace worms_server {
                 socket.set_option(ip::tcp::no_delay(true));
                 socket.set_option(ip::tcp::socket::keep_alive(true));
 
-                const auto session = std::make_shared<user_session>(std::move(socket));
-                co_spawn(io_context_, std::move(session)->run(), detached);
+                const auto session = std::make_shared<UserSession>(std::move(socket));
+                co_spawn(ioContext_, std::move(session)->run(), detached);
             } else {
                 spdlog::error("Accept error: {}", ec.message());
             }
         }
     }
 
-    void server::run(const size_t thread_count) {
-        co_spawn(io_context_, listener(), detached);
+    void Server::run(const size_t threadCount) {
+        co_spawn(ioContext_, listener(), detached);
         spdlog::info("Press Ctrl+C to exit");
 
-        for (size_t i = 0; i < thread_count - 1; ++i) {
-            post(io_context_, [this]() { io_context_.run(); });
+        for (size_t i = 0; i < threadCount - 1; ++i) {
+            post(ioContext_, [this]() { ioContext_.run(); });
         }
 
         // Run the io_context on the main thread as well
-        io_context_.run();
+        ioContext_.run();
 
         // Wait for the thread pool to complete
-        thread_pool_.join();
+        threadPool_.join();
     }
 
-    void server::stop() {
-        io_context_.stop();
-        thread_pool_.stop();
+    void Server::stop() {
+        ioContext_.stop();
+        threadPool_.stop();
     }
 } // namespace worms_server

@@ -11,27 +11,27 @@
 #include <asio/ip/address_v4.hpp>
 
 namespace worms_server {
-    class game {
+    class Game {
     public:
-        explicit game(uint32_t id, std::string_view name, nation nation, uint32_t room_id, asio::ip::address_v4 address,
-            session_access access);
+        explicit Game(uint32_t id, std::string_view name, Nation nation, uint32_t roomId, asio::ip::address_v4 address,
+            SessionAccess access);
 
-        ~game() {
+        ~Game() {
             spdlog::debug("Game {} has been destroyed", id_);
         }
 
-        [[nodiscard]] uint32_t get_id() const;
-        [[nodiscard]] std::string_view get_name() const;
-        [[nodiscard]] const session_info& get_session_info() const;
-        [[nodiscard]] asio::ip::address_v4 get_address() const;
-        [[nodiscard]] uint32_t get_room_id() const;
+        [[nodiscard]] uint32_t getId() const;
+        [[nodiscard]] std::string_view getName() const;
+        [[nodiscard]] const SessionInfo& getSessionInfo() const;
+        [[nodiscard]] asio::ip::address_v4 getAddress() const;
+        [[nodiscard]] uint32_t getRoomId() const;
 
     private:
         uint32_t id_;
         std::string name_;
-        session_info session_info_;
+        SessionInfo sessionInfo_;
         asio::ip::address_v4 address_;
-        uint32_t room_id_;
+        uint32_t roomId_;
     };
 } // namespace worms_server
 

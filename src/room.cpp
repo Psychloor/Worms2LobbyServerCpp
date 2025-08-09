@@ -10,18 +10,18 @@
 
 namespace worms_server
 {
-    room::room(const uint32_t id, const std::string_view name,
-               const nation nation, asio::ip::address_v4 address) :
-        id_(id), name_(name), session_info_{nation, session_type::room},
+    Room::Room(const uint32_t id, const std::string_view name,
+               const Nation nation, asio::ip::address_v4 address) :
+        id_(id), name_(name), sessionInfo_{nation, SessionType::Room},
         address_(std::move(address))
     {
     }
 
-    uint32_t room::get_id() const { return id_; }
+    uint32_t Room::getId() const { return id_; }
 
-    std::string_view room::get_name() const { return name_; }
+    std::string_view Room::getName() const { return name_; }
 
-    const session_info& room::get_session_info() const { return session_info_; }
+    const SessionInfo& Room::getSessionInfo() const { return sessionInfo_; }
 
-    asio::ip::address_v4 room::get_address() const { return address_; }
+    asio::ip::address_v4 Room::getAddress() const { return address_; }
 } // namespace worms_server

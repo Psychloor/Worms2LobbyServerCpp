@@ -12,23 +12,23 @@ using asio::use_awaitable;
 using namespace asio;
 
 namespace worms_server {
-    class server {
+    class Server {
     public:
-        server(uint16_t port, size_t max_connections);
+        Server(uint16_t port, size_t maxConnections);
 
-        void run(size_t thread_count);
+        void run(size_t threadCount);
         void stop();
 
-        static std::atomic_uint32_t connection_count;
+        static std::atomic_uint32_t connectionCount;
 
     private:
         awaitable<void> listener();
 
         uint16_t port_;
-        size_t max_connections_;
+        size_t maxConnections_;
 
-        thread_pool thread_pool_;
-        io_context io_context_;
+        thread_pool threadPool_;
+        io_context ioContext_;
         signal_set signals_;
     };
 } // namespace worms_server

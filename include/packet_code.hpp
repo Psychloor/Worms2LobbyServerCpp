@@ -7,49 +7,53 @@
 
 #include <cstdint>
 
-namespace worms_server {
-    enum class packet_code : uint32_t {
-        unknown            = 0,
-        list_rooms         = 200,
-        list_item          = 350,
-        list_end           = 351,
-        list_users         = 400,
-        list_games         = 500,
-        login              = 600,
-        login_reply        = 601,
-        create_room        = 700,
-        create_room_reply  = 701,
-        join               = 800,
-        join_reply         = 801,
-        leave              = 900,
-        leave_reply        = 901,
-        disconnect_user    = 1000,
-        close              = 1100,
-        close_reply        = 1101,
-        create_game        = 1200,
-        create_game_reply  = 1201,
-        chat_room          = 1300,
-        chat_room_reply    = 1301,
-        connect_game       = 1326,
-        connect_game_reply = 1327,
+namespace worms_server
+{
+    enum class PacketCode : uint32_t
+    {
+        Unknown          = 0,
+        ListRooms        = 200,
+        ListItem         = 350,
+        ListEnd          = 351,
+        ListUsers        = 400,
+        ListGames        = 500,
+        Login            = 600,
+        LoginReply       = 601,
+        CreateRoom       = 700,
+        CreateRoomReply  = 701,
+        Join             = 800,
+        JoinReply        = 801,
+        Leave            = 900,
+        LeaveReply       = 901,
+        DisconnectUser   = 1000,
+        Close            = 1100,
+        CloseReply       = 1101,
+        CreateGame       = 1200,
+        CreateGameReply  = 1201,
+        ChatRoom         = 1300,
+        ChatRoomReply    = 1301,
+        ConnectGame      = 1326,
+        ConnectGameReply = 1327,
     };
 
-    static constexpr bool packet_code_exists(const uint32_t code) {
-        switch (code) {
-        case static_cast<uint32_t>(packet_code::list_rooms):
-        case static_cast<uint32_t>(packet_code::list_users):
-        case static_cast<uint32_t>(packet_code::list_games):
-        case static_cast<uint32_t>(packet_code::create_room):
-        case static_cast<uint32_t>(packet_code::join):
-        case static_cast<uint32_t>(packet_code::leave):
-        case static_cast<uint32_t>(packet_code::close):
-        case static_cast<uint32_t>(packet_code::create_game):
-        case static_cast<uint32_t>(packet_code::chat_room):
-        case static_cast<uint32_t>(packet_code::connect_game):
+    static constexpr bool PacketCodeExists(const uint32_t code)
+    {
+        switch (code)
+        {
+        case static_cast<uint32_t>(PacketCode::ListRooms):
+        case static_cast<uint32_t>(PacketCode::ListUsers):
+        case static_cast<uint32_t>(PacketCode::ListGames):
+        case static_cast<uint32_t>(PacketCode::CreateRoom):
+        case static_cast<uint32_t>(PacketCode::Join):
+        case static_cast<uint32_t>(PacketCode::Leave):
+        case static_cast<uint32_t>(PacketCode::Close):
+        case static_cast<uint32_t>(PacketCode::CreateGame):
+        case static_cast<uint32_t>(PacketCode::ChatRoom):
+        case static_cast<uint32_t>(PacketCode::ConnectGame):
             return true;
 
         // since the reader relies on this, need to add login here for it
-        case static_cast<uint32_t>(packet_code::login):
+        case static_cast<uint32_t>(PacketCode::Login):
             return true;
 
         default:

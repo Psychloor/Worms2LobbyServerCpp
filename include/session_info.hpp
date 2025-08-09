@@ -14,37 +14,37 @@
 #include "packet_buffers.hpp"
 
 namespace worms_server {
-    enum class session_type : uint8_t { room = 1, game = 4, user = 5 };
+    enum class SessionType : uint8_t { Room = 1, Game = 4, User = 5 };
 
-    enum class session_access : uint8_t {
-        public_access    = 1,
-        protected_access = 2,
+    enum class SessionAccess : uint8_t {
+        PublicAccess    = 1,
+        ProtectedAccess = 2,
     };
 
-    struct session_info {
-        static constexpr size_t padding_size = 35;
+    struct SessionInfo {
+        static constexpr size_t PADDING_SIZE = 35;
         uint32_t crc1{};
         uint32_t crc2{};
-        nation player_nation = nation::team17;
-        uint8_t game_version{};
-        uint8_t game_release{};
-        session_type type     = session_type::user;
-        session_access access = session_access::public_access;
-        uint8_t always_one{};
-        uint8_t always_zero{};
-        std::array<net::byte, padding_size> padding{};
+        Nation playerNation = Nation::CustomTeam17Flag;
+        uint8_t gameVersion{};
+        uint8_t gameRelease{};
+        SessionType type     = SessionType::User;
+        SessionAccess access = SessionAccess::PublicAccess;
+        uint8_t alwaysOne{};
+        uint8_t alwaysZero{};
+        std::array<net::byte, PADDING_SIZE> padding{};
 
-        session_info() = default;
+        SessionInfo() = default;
 
-        session_info(
-            worms_server::nation nation, session_type type, session_access access = session_access::public_access);
+        SessionInfo(
+            worms_server::Nation nation, SessionType type, SessionAccess access = SessionAccess::PublicAccess);
 
-        void write_to(net::packet_writer& writer) const;
+        void writeTo(net::packet_writer& writer) const;
 
-        [[nodiscard]] static net::deserialization_result<session_info, std::string> read_from(
+        [[nodiscard]] static net::deserialization_result<SessionInfo, std::string> readFrom(
             net::packet_reader& reader);
 
-        [[nodiscard]] static bool verify_session_info(const session_info& info);
+        [[nodiscard]] static bool verifySessionInfo(const SessionInfo& info);
     };
 } // namespace worms_server
 

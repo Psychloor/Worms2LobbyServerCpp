@@ -1,24 +1,24 @@
-﻿#include "spdlog/async.h"
-#include "spdlog/cfg/env.h"
-#include "spdlog/sinks/daily_file_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
-#include <iostream>
+﻿#include <iostream>
 #include <memory>
 #include <ranges>
 #include <string>
 #include <vector>
+#include "spdlog/async.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/cfg/env.h"
+#include "spdlog/sinks/daily_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "server.hpp"
 #include "user_session.hpp"
 
 
-void initialize_logging() {
+void InitializeLogging() {
     spdlog::init_thread_pool(8192, 1); // queue size, number of threads
-    const auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    const auto file_sink    = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/worms_server.log", 0, 0, true);
+    const auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    const auto fileSink    = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/worms_server.log", 0, 0, true);
 
-    std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
+    std::vector<spdlog::sink_ptr> sinks{consoleSink, fileSink};
     const auto logger = std::make_shared<spdlog::async_logger>("Worms Server", sinks.begin(), sinks.end(),
         // use global thread pool
         spdlog::thread_pool(), spdlog::async_overflow_policy::block);
@@ -37,10 +37,10 @@ void initialize_logging() {
     std::atexit([]() { spdlog::shutdown(); });
 }
 
-bool parse_command_line_arguments(
-    const int argc, char** argv, uint16_t& port, size_t& max_connections, size_t& max_threads) {
+bool ParseCommandLineArguments(
+    const int argc, char** argv, uint16_t& port, size_t& maxConnections, size_t& maxThreads) {
     auto args = std::vector<std::string>(argv, argv + argc);
-    for (const auto args_slide = std::ranges::slide_view(args, 2); const auto& arg : args_slide) {
+    for (const auto argsSlide = std::ranges::slide_view(args, 2); const auto& arg : argsSlide) {
         if (arg[0] == "-p" || arg[0] == "--port") {
             port = static_cast<uint16_t>(std::stoi(arg[1]));
             if (port <= 1024) {
@@ -50,23 +50,23 @@ bool parse_command_line_arguments(
         }
 
         if (arg[0] == "-c" || arg[0] == "--connections") {
-            max_connections = std::stoi(arg[1]);
-            if (max_connections < 1) {
+            maxConnections = std::stoi(arg[1]);
+            if (maxConnections < 1) {
                 std::cerr << "Invalid connection count, defaulting to 1000\n";
-                max_connections = 1000;
+                maxConnections = 1000;
             }
         }
 
         if (arg[0] == "-t" || arg[0] == "--threads") {
-            max_threads = std::stoi(arg[1]);
-            if (max_threads < 1) {
+            maxThreads = std::stoi(arg[1]);
+            if (maxThreads < 1) {
                 std::cerr << "Invalid thread count, defaulting to " << std::thread::hardware_concurrency() << "\n";
-                max_threads = std::thread::hardware_concurrency();
-            } else if (max_threads > std::thread::hardware_concurrency()) {
+                maxThreads = std::thread::hardware_concurrency();
+            } else if (maxThreads > std::thread::hardware_concurrency()) {
                 std::cerr << "Thread count cannot be higher than the number of "
                              "cores, defaulting to "
                           << std::thread::hardware_concurrency() << "\n";
-                max_threads = std::thread::hardware_concurrency();
+                maxThreads = std::thread::hardware_concurrency();
             }
         }
 
@@ -90,18 +90,18 @@ bool parse_command_line_arguments(
 
 int main(const int argc, char** argv) {
     uint16_t port          = 17000;
-    size_t max_connections = 10000;
-    size_t max_threads     = std::thread::hardware_concurrency();
+    size_t maxConnections = 10000;
+    size_t maxThreads     = std::thread::hardware_concurrency();
 
-    initialize_logging();
+    InitializeLogging();
 
-    if (parse_command_line_arguments(argc, argv, port, max_connections, max_threads)) {
+    if (ParseCommandLineArguments(argc, argv, port, maxConnections, maxThreads)) {
         return 0;
     }
 
     try {
-        worms_server::server server(port, max_connections);
-        server.run(max_threads);
+        worms_server::Server server(port, maxConnections);
+        server.run(maxThreads);
     } catch (const std::exception& e) {
         spdlog::error("Fatal: {}", e.what());
         return 1;

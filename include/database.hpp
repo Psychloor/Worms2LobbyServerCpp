@@ -9,49 +9,49 @@
 #include <asio/ip/address_v4.hpp>
 
 namespace worms_server {
-    class user;
-    class room;
-    class game;
+    class User;
+    class Room;
+    class Game;
 
-    class database : std::enable_shared_from_this<database> {
+    class Database : std::enable_shared_from_this<Database> {
     public:
-        [[nodiscard]] static std::shared_ptr<database> get_instance();
-        [[nodiscard]] static uint32_t get_next_id();
-        static void recycle_id(uint32_t id);
+        [[nodiscard]] static std::shared_ptr<Database> getInstance();
+        [[nodiscard]] static uint32_t getNextId();
+        static void recycleId(uint32_t id);
 
-        [[nodiscard]] std::shared_ptr<user> get_user(uint32_t id) const;
-        [[nodiscard]] std::shared_ptr<room> get_room(uint32_t id) const;
-        [[nodiscard]] std::shared_ptr<game> get_game(uint32_t id) const;
+        [[nodiscard]] std::shared_ptr<User> getUser(uint32_t id) const;
+        [[nodiscard]] std::shared_ptr<Room> getRoom(uint32_t id) const;
+        [[nodiscard]] std::shared_ptr<Game> getGame(uint32_t id) const;
 
-        [[nodiscard]] std::vector<std::shared_ptr<user>> get_users() const;
-        [[nodiscard]] std::vector<std::shared_ptr<room>> get_rooms() const;
-        [[nodiscard]] std::vector<std::shared_ptr<game>> get_games() const;
+        [[nodiscard]] std::vector<std::shared_ptr<User>> getUsers() const;
+        [[nodiscard]] std::vector<std::shared_ptr<Room>> getRooms() const;
+        [[nodiscard]] std::vector<std::shared_ptr<Game>> getGames() const;
 
-        [[nodiscard]] std::vector<std::shared_ptr<user>> get_users_in_room(uint32_t room_id) const;
-        [[nodiscard]] std::shared_ptr<game> get_game_by_name(std::string_view name) const;
+        [[nodiscard]] std::vector<std::shared_ptr<User>> getUsersInRoom(uint32_t roomId) const;
+        [[nodiscard]] std::shared_ptr<Game> getGameByName(std::string_view name) const;
 
-        void set_user_room_id(uint32_t user_id, uint32_t room_id);
+        void setUserRoomId(uint32_t userId, uint32_t roomId);
 
-        void add_user(std::shared_ptr<user> user);
-        void remove_user(uint32_t id);
+        void addUser(std::shared_ptr<User> user);
+        void removeUser(uint32_t id);
 
-        void add_room(std::shared_ptr<room> room);
-        void remove_room(uint32_t id);
+        void addRoom(std::shared_ptr<Room> room);
+        void removeRoom(uint32_t id);
 
-        void add_game(std::shared_ptr<game> game);
-        void remove_game(uint32_t id);
+        void addGame(std::shared_ptr<Game> game);
+        void removeGame(uint32_t id);
 
     private:
-        mutable std::shared_mutex users_mutex_;
-        mutable std::shared_mutex rooms_mutex_;
-        mutable std::shared_mutex games_mutex_;
+        mutable std::shared_mutex usersMutex_;
+        mutable std::shared_mutex roomsMutex_;
+        mutable std::shared_mutex gamesMutex_;
 
-        std::atomic_uint32_t next_id_ = 0x1000U;
-        moodycamel::ConcurrentQueue<uint32_t> recycled_ids_;
+        std::atomic_uint32_t nextId_ = 0x1000U;
+        moodycamel::ConcurrentQueue<uint32_t> recycledIds_;
 
-        std::unordered_map<uint32_t, std::shared_ptr<user>> users_;
-        std::unordered_map<uint32_t, std::shared_ptr<room>> rooms_;
-        std::unordered_map<uint32_t, std::shared_ptr<game>> games_;
+        std::unordered_map<uint32_t, std::shared_ptr<User>> users_;
+        std::unordered_map<uint32_t, std::shared_ptr<Room>> rooms_;
+        std::unordered_map<uint32_t, std::shared_ptr<Game>> games_;
     };
 } // namespace worms_server
 

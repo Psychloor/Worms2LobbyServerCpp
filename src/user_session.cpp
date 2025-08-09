@@ -15,111 +15,111 @@
 #include <asio/steady_timer.hpp>
 
 namespace worms_server {
-    static awaitable<void> leave_room(const std::shared_ptr<room>& room, uint32_t left_id) {
-        const auto database    = database::get_instance();
-        const auto users       = database->get_users();
-        const auto games       = database->get_games();
-        const uint32_t room_id = room == nullptr ? 0 : room->get_id();
+    static awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t left_id) {
+        const auto database    = Database::getInstance();
+        const auto users       = database->getUsers();
+        const auto games       = database->getGames();
+        const uint32_t roomId = room == nullptr ? 0 : room->getId();
 
 
-        spdlog::debug("User Session: Leaving room {}", room_id);
-        const auto has_other_users = std::ranges::any_of(users, [left_id, room_id](const auto& user) {
-            return user->get_id() != left_id && user->get_room_id() == room_id;
+        spdlog::debug("User Session: Leaving room {}", roomId);
+        const auto hasOtherUsers = std::ranges::any_of(users, [left_id, roomId](const auto& user) {
+            return user->getId() != left_id && user->getRoomId() == roomId;
         });
 
-        const auto has_other_games = std::ranges::any_of(games, [left_id, room_id](const auto& game) {
-            return game->get_id() != left_id && game->get_room_id() == room_id;
+        const auto hasOtherGames = std::ranges::any_of(games, [left_id, roomId](const auto& game) {
+            return game->getId() != left_id && game->getRoomId() == roomId;
         });
 
-        const bool room_closed = room && !has_other_users && !has_other_games;
+        const bool roomClosed = room && !hasOtherUsers && !hasOtherGames;
 
-        if (room_closed) {
-            database->remove_room(room_id);
+        if (roomClosed) {
+            database->removeRoom(roomId);
         }
 
-        const auto room_leave_packet_bytes =
-            worms_packet::freeze(packet_code::leave, {.value2 = room_id, .value10 = left_id});
-        const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = room_id});
+        const auto roomLeavePacketBytes =
+            WormsPacket::freeze(PacketCode::Leave, {.value2 = roomId, .value10 = left_id});
+        const auto roomClosePacketBytes = WormsPacket::freeze(PacketCode::Close, {.value10 = roomId});
 
         for (const auto& user : users) {
-            if (user->get_id() == left_id) {
+            if (user->getId() == left_id) {
                 continue;
             }
 
             if (room != nullptr) {
-                user->send_packet(room_leave_packet_bytes);
+                user->sendPacket(roomLeavePacketBytes);
             }
 
-            if (room_closed) {
-                user->send_packet(room_close_packet_bytes);
+            if (roomClosed) {
+                user->sendPacket(roomClosePacketBytes);
             }
         }
 
         co_return;
     }
 
-    static awaitable<void> disconnect_user(const std::shared_ptr<user>& client_user) {
+    static awaitable<void> DisconnectUser(const std::shared_ptr<User>& client_user) {
         if (client_user == nullptr) {
             co_return;
         }
 
-        spdlog::debug("User Session: Disconnecting user {}", client_user->get_name());
+        spdlog::debug("User Session: Disconnecting user {}", client_user->getName());
 
-        uint32_t left_id = client_user->get_id();
+        uint32_t leftId = client_user->getId();
 
-        if (left_id == 0) {
+        if (leftId == 0) {
             co_return;
         }
 
-        uint32_t room_id    = client_user->get_room_id();
-        const auto database = database::get_instance();
-        database->remove_user(left_id);
+        uint32_t roomId    = client_user->getRoomId();
+        const auto database = Database::getInstance();
+        database->removeUser(leftId);
 
         // Close abandoned game
-        if (const auto game = database->get_game_by_name(client_user->get_name())) {
-            room_id = game->get_room_id();
-            left_id = game->get_id();
+        if (const auto game = database->getGameByName(client_user->getName())) {
+            roomId = game->getRoomId();
+            leftId = game->getId();
 
-            database->remove_game(left_id);
+            database->removeGame(leftId);
 
-            const auto room_leave_packet_bytes =
-                worms_packet::freeze(packet_code::leave, {.value2 = game->get_id(), .value10 = client_user->get_id()});
-            const auto room_close_packet_bytes = worms_packet::freeze(packet_code::close, {.value10 = game->get_id()});
-            for (const auto& user : database->get_users()) {
-                if (user->get_id() == client_user->get_id()) {
+            const auto roomLeavePacketBytes =
+                WormsPacket::freeze(PacketCode::Leave, {.value2 = game->getId(), .value10 = client_user->getId()});
+            const auto roomClosePacketBytes = WormsPacket::freeze(PacketCode::Close, {.value10 = game->getId()});
+            for (const auto& user : database->getUsers()) {
+                if (user->getId() == client_user->getId()) {
                     continue;
                 }
 
-                user->send_packet(room_leave_packet_bytes);
-                user->send_packet(room_close_packet_bytes);
+                user->sendPacket(roomLeavePacketBytes);
+                user->sendPacket(roomClosePacketBytes);
             }
         }
 
         // Close abandoned room
-        co_await leave_room(database->get_room(room_id), left_id);
+        co_await LeaveRoom(database->getRoom(roomId), leftId);
 
         // Notify other users we've disconnected
-        const auto packet_bytes =
-            worms_packet::freeze(packet_code::disconnect_user, {.value10 = client_user->get_id()});
-        for (const auto& user : database->get_users()) {
-            user->send_packet(packet_bytes);
+        const auto packetBytes =
+            WormsPacket::freeze(PacketCode::DisconnectUser, {.value10 = client_user->getId()});
+        for (const auto& user : database->getUsers()) {
+            user->sendPacket(packetBytes);
         }
 
         co_return;
     }
 
-    user_session::user_session(ip::tcp::socket socket)
-        : database_(database::get_instance()), socket_(std::move(socket)), timer_(socket_.get_executor()),
+    UserSession::UserSession(ip::tcp::socket socket)
+        : database_(Database::getInstance()), socket_(std::move(socket)), timer_(socket_.get_executor()),
           strand_(socket_.get_executor()) {
         timer_.expires_at(std::chrono::steady_clock::time_point::max());
-        server::connection_count.fetch_add(1, std::memory_order_relaxed);
+        Server::connectionCount.fetch_add(1, std::memory_order_relaxed);
     }
 
-    user_session::~user_session() {
-        is_shutting_down_ = true;
+    UserSession::~UserSession() {
+        isShuttingDown_ = true;
         socket_.close();
 
-        server::connection_count.fetch_sub(1, std::memory_order_relaxed);
+        Server::connectionCount.fetch_sub(1, std::memory_order_relaxed);
 
         // Clear any pending packets
         moodycamel::ConsumerToken consumer_token(packets_);
@@ -128,61 +128,61 @@ namespace worms_server {
             // Drain the queue
         }
 
-        spdlog::debug("User session for {} destroyed", user_ ? user_->get_name() : "unknown");
+        spdlog::debug("User session for {} destroyed", user_ ? user_->getName() : "unknown");
     }
 
-    awaitable<void> user_session::run() {
+    awaitable<void> UserSession::run() {
         // Keep ref alive for the full coroutine lifetime
         auto self = shared_from_this();
 
         co_spawn(strand_, [self = shared_from_this()]() -> awaitable<void> { co_await self->writer(); }, detached);
 
-        user_ = co_await handle_login();
+        user_ = co_await handleLogin();
         if (user_ == nullptr) {
             spdlog::error("Failed to login");
             co_return;
         }
 
-        spdlog::info("User {} logged in", user_->get_name());
-        co_await handle_session();
+        spdlog::info("User {} logged in", user_->getName());
+        co_await handleSession();
 
 
-        co_await disconnect_user(user_);
+        co_await DisconnectUser(user_);
         co_return;
     }
 
-    void user_session::send_packet(const net::shared_bytes_ptr& packet) {
-        const moodycamel::ProducerToken producer_token(packets_);
-        packets_.enqueue(producer_token, packet);
+    void UserSession::sendPacket(const net::shared_bytes_ptr& packet) {
+        const moodycamel::ProducerToken producerToken(packets_);
+        packets_.enqueue(producerToken, packet);
         timer_.cancel_one(); // wake up the writer if sleeping
     }
 
-    ip::address_v4 user_session::address_v4() const {
+    ip::address_v4 UserSession::addressV4() const {
         return socket_.remote_endpoint().address().to_v4();
     }
 
-    awaitable<void> user_session::writer() {
+    awaitable<void> UserSession::writer() {
         try {
-            moodycamel::ConsumerToken consumer_token(packets_);
-            constexpr auto flush_delay = std::chrono::milliseconds(100);
+            moodycamel::ConsumerToken consumerToken(packets_);
+            static constexpr auto FLUSH_DELAY = std::chrono::milliseconds(100);
 
-            std::vector<net::shared_bytes_ptr> packet_batch;
+            std::vector<net::shared_bytes_ptr> packetBatch;
             std::vector<const_buffer> buffers;
 
             net::shared_bytes_ptr packet;
 
-            while (!is_shutting_down_) {
+            while (!isShuttingDown_) {
                 // Collect available packets
-                while (packets_.try_dequeue(consumer_token, packet) && packet_batch.size() < 16) {
-                    packet_batch.push_back(std::move(packet));
+                while (packets_.try_dequeue(consumerToken, packet) && packetBatch.size() < 16) {
+                    packetBatch.push_back(std::move(packet));
                 }
 
 
                 // Flush everything currently queued
-                if (!packet_batch.empty()) {
+                if (!packetBatch.empty()) {
                     // Prepare buffers for vectored writing
                     buffers.clear();
-                    for (const auto& pkt : packet_batch) {
+                    for (const auto& pkt : packetBatch) {
                         buffers.emplace_back(pkt->data(), pkt->size());
                     }
 
@@ -193,12 +193,12 @@ namespace worms_server {
                     if (ec) {
                         co_return; // socket closed/reset
                     }
-                    packet_batch.clear();
+                    packetBatch.clear();
                 }
 
                 error_code ec;
                 if (packets_.size_approx() == 0) {
-                    timer_.expires_after(flush_delay);
+                    timer_.expires_after(FLUSH_DELAY);
                     co_await timer_.async_wait(redirect_error(use_awaitable, ec));
                 }
 
@@ -215,7 +215,7 @@ namespace worms_server {
         co_return;
     }
 
-    awaitable<std::shared_ptr<user>> user_session::handle_login() {
+    awaitable<std::shared_ptr<User>> UserSession::handleLogin() {
         std::vector<std::byte> incoming(1024);
 
         steady_timer timer(socket_.get_executor());
@@ -223,7 +223,7 @@ namespace worms_server {
 
 
         try {
-            uint32_t user_id = 0;
+            uint32_t userId = 0;
             // Start the timer
             timer.async_wait([&](const error_code& wait_ec) {
                 if (!wait_ec) {
@@ -245,24 +245,24 @@ namespace worms_server {
                 co_return nullptr;
             }
 
-            auto packet_reader = net::packet_reader(incoming);
-            auto login_packet  = worms_packet::read_from(packet_reader);
-            if (login_packet.status == net::packet_parse_status::error) {
-                spdlog::error("Error reading login packet: {}", login_packet.error.value_or(""));
+            auto packetReader = net::packet_reader(incoming);
+            auto [status, data, error]  = WormsPacket::readFrom(packetReader);
+            if (status == net::packet_parse_status::error) {
+                spdlog::error("Error reading login packet: {}", error.value_or(""));
                 co_return nullptr;
             }
 
-            if (login_packet.status == net::packet_parse_status::partial) {
+            if (status == net::packet_parse_status::partial) {
                 spdlog::error("Login packet is empty");
                 co_return nullptr;
             }
-            if (!login_packet.data) {
+            if (!data) {
                 spdlog::error("Login packet has no data");
                 co_return nullptr;
             }
 
-            const auto& login_info = *login_packet.data;
-            if (login_info->code() != packet_code::login) {
+            const auto& login_info = *data;
+            if (login_info->code() != PacketCode::Login) {
                 spdlog::error("Invalid packet code in login packet");
                 co_return nullptr;
             }
@@ -277,52 +277,52 @@ namespace worms_server {
             const std::string_view username = *login_info->fields().name;
 
             // check if a username is valid and not already taken
-            const auto current_users = database_->get_users();
-            const auto found_user    = std::ranges::find_if(current_users,
-                   [&username](const auto& user) { return equals_case_insensitive(user->get_name(), username); });
+            const auto currentUsers = database_->getUsers();
+            const auto foundUser    = std::ranges::find_if(currentUsers,
+                   [&username](const auto& user) { return EqualsCaseInsensitive(user->getName(), username); });
 
-            if (found_user != current_users.end()) {
-                const auto bytes = worms_packet::freeze(packet_code::login_reply, {.value1 = 0, .error = 1});
+            if (foundUser != currentUsers.end()) {
+                const auto bytes = WormsPacket::freeze(PacketCode::LoginReply, {.value1 = 0, .error = 1});
                 co_await socket_.async_write_some(buffer(bytes->data(), bytes->size()), use_awaitable);
                 co_return nullptr;
             }
 
             // create a new user and add it to the database
-            user_id = database::get_next_id();
-            const auto client_user =
-                std::make_shared<user>(shared_from_this(), user_id, username, login_info->fields().info->player_nation);
+            userId = Database::getNextId();
+            const auto clientUser =
+                std::make_shared<User>(shared_from_this(), userId, username, login_info->fields().info->playerNation);
 
             // Notify other users we've logged in
-            const auto packet_bytes = worms_packet::freeze(packet_code::login,
-                {.value1 = user_id, .value4 = 0, .name = username.data(), .info = client_user->get_session_info()});
-            for (const auto& user : database_->get_users()) {
-                user->send_packet(packet_bytes);
+            const auto packetBytes = WormsPacket::freeze(PacketCode::Login,
+                {.value1 = userId, .value4 = 0, .name = username.data(), .info = clientUser->getSessionInfo()});
+            for (const auto& user : database_->getUsers()) {
+                user->sendPacket(packetBytes);
             }
 
-            database_->add_user(client_user);
+            database_->addUser(clientUser);
 
             // Send the login reply packet
-            send_packet(worms_packet::freeze(packet_code::login_reply, {.value1 = user_id, .error = 0}));
+            sendPacket(WormsPacket::freeze(PacketCode::LoginReply, {.value1 = userId, .error = 0}));
 
-            co_return std::move(client_user);
+            co_return std::move(clientUser);
         } catch (std::exception& e) {
             spdlog::error("Error in User Session login: {}", e.what());
             co_return nullptr;
         }
     }
 
-    awaitable<void> user_session::handle_session() {
+    awaitable<void> UserSession::handleSession() {
         try {
-            net::framed_packet_reader<worms_packet_ptr, std::string> reader(worms_packet::read_from);
+            net::framed_packet_reader<WormsPacketPtr, std::string> reader(WormsPacket::readFrom);
 
-            constexpr auto timeout_delay = std::chrono::minutes(10);
-            const string_view username   = user_->get_name();
+            static constexpr auto TIMEOUT_DELAY = std::chrono::minutes(10);
+            const string_view username   = user_->getName();
 
             steady_timer timer(socket_.get_executor());
             std::vector<std::byte> incoming(2048);
             while (socket_.is_open()) {
                 try {
-                    timer.expires_after(timeout_delay);
+                    timer.expires_after(TIMEOUT_DELAY);
                     timer.async_wait([&](const error_code& wait_ec) {
                         if (!wait_ec && socket_.is_open()) {
                             // Timer expired, close the socket
@@ -364,7 +364,7 @@ namespace worms_server {
                         spdlog::debug(
                             "Received packet code {} from {}", static_cast<uint32_t>(data.value()->code()), username);
 
-                        if (!co_await packet_handler::handle_packet(user_, database_, std::move(*data))) {
+                        if (!co_await PacketHandler::handlePacket(user_, database_, std::move(*data))) {
                             spdlog::warn("Packet handler failed or returned false");
                             co_return;
                         }

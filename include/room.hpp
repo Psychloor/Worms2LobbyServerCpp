@@ -5,33 +5,32 @@
 #ifndef ROOM_HPP
 #define ROOM_HPP
 
-#include <asio/ip/address_v4.hpp>
-#include <shared_mutex>
 #include <string>
+#include <asio/ip/address_v4.hpp>
 
 #include "session_info.hpp"
 #include "spdlog/spdlog.h"
 
 namespace worms_server
 {
-    class user;
-    class room
+    class User;
+    class Room
     {
     public:
-        explicit room(uint32_t id, std::string_view name, nation nation,
+        explicit Room(uint32_t id, std::string_view name, Nation nation,
                       asio::ip::address_v4 address);
 
-        ~room() { spdlog::debug("Room {} has been destroyed", id_); }
+        ~Room() { spdlog::debug("Room {} has been destroyed", id_); }
 
-        [[nodiscard]] uint32_t get_id() const;
-        [[nodiscard]] std::string_view get_name() const;
-        [[nodiscard]] const session_info& get_session_info() const;
-        [[nodiscard]] asio::ip::address_v4 get_address() const;
+        [[nodiscard]] uint32_t getId() const;
+        [[nodiscard]] std::string_view getName() const;
+        [[nodiscard]] const SessionInfo& getSessionInfo() const;
+        [[nodiscard]] asio::ip::address_v4 getAddress() const;
 
     private:
         uint32_t id_;
         std::string name_;
-        session_info session_info_;
+        SessionInfo sessionInfo_;
         asio::ip::address_v4 address_;
     };
 } // namespace worms_server
