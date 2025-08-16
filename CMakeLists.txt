@@ -17,6 +17,12 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
+if (MSVC)
+    if (NOT CMAKE_GENERATOR STREQUAL "Ninja")
+        add_definitions(/MP)    # parallelize each target, unless Ninja is the generator
+    endif ()
+endif ()
+
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
@@ -25,49 +31,31 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeR
 
 # Multithreading support
 if (WIN32)
-    add_definitions(-D_WIN32_WINNT=0x0601)
+    add_definitions(-D_WIN32_WINNT=0x0A00)
     if (MSVC)
-        add_definitions(-D_WIN32_WINNT=0x0601 -D_CRT_SECURE_NO_WARNINGS)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        add_definitions(-D_WIN32_WINNT=0x0A00 -D_CRT_SECURE_NO_WARNINGS)
     endif ()
 else ()
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 endif ()
 
-set(HEADERS
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/nation.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_code.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/worms_packet.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/session_info.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_flags.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/windows_1251.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/database.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/user.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/room.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/game.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/user_session.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/packet_handler.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/server.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/string_utils.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/windows_1252.hpp
+file(
+        GLOB_RECURSE HEADER_FILES
+        LIST_DIRECTORIES false
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/include/*.hpp
 )
-
-set(SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/worms_packet.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/database.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/user.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/room.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/game.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/user_session.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/packet_handler.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/session_info.cpp
+file(
+        GLOB_RECURSE SOURCE_FILES
+        LIST_DIRECTORIES false
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/src/*.cpp
 )
 
 # Dependencies
 find_package(asio CONFIG REQUIRED)
-find_package(unofficial-concurrentqueue CONFIG REQUIRED)
+find_package(concurrentqueue CONFIG REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -85,18 +73,20 @@ set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(SPDLOG_INSTALL OFF CACHE BOOL "Generate the install target" FORCE)
 find_package(spdlog REQUIRED)
 
-
-# Optimization flags for non-MSVC compilers
-if (NOT MSVC)
-    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-        add_compile_options(-O2)
-    endif ()
-endif ()
-
 # Main executable
-add_executable(${PROJECT_NAME} main.cpp
-        ${HEADERS}
-        ${SOURCES}
+add_executable(${PROJECT_NAME})
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+target_sources(${PROJECT_NAME}
+        PRIVATE
+        main.cpp
+        ${SOURCE_FILES}
+
+        PUBLIC
+        FILE_SET headers TYPE HEADERS
+        BASE_DIRS ${PROJECT_SOURCE_DIR}/include/
+        FILES
+        ${HEADER_FILES}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -107,18 +97,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         $<$<NOT:$<PLATFORM_ID:Windows>>:Threads::Threads>
         asio::asio
         spdlog::spdlog
-        unofficial::concurrentqueue::concurrentqueue
+        concurrentqueue::concurrentqueue
         PacketIO::PacketIO
-)
-
-# Installation rules
-install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-)
-
-install(FILES ${HEADERS}
-        DESTINATION include/${PROJECT_NAME}
 )
 
