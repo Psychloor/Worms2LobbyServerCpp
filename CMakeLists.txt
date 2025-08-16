@@ -17,9 +17,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
-add_definitions(-DASIO_HAS_CO_AWAIT)
-add_definitions(-DASIO_HAS_STD_COROUTINE)
-
 if (MSVC)
     if (NOT CMAKE_GENERATOR STREQUAL "Ninja")
         add_definitions(/MP)    # parallelize each target, unless Ninja is the generator
@@ -99,8 +96,78 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
         $<$<NOT:$<PLATFORM_ID:Windows>>:Threads::Threads>
         asio::asio
-        spdlog::spdlog
+        spdlog::spdlog_header_only
         concurrentqueue::concurrentqueue
         PacketIO::PacketIO
 )
+
+include(CheckCXXSourceCompiles)
+
+# Test for standard <coroutine> support and co_await
+set(CODE_STD_CORO "
+#include <coroutine>
+struct awaitable {
+  bool await_ready() const noexcept { return true; }
+  void await_suspend(std::coroutine_handle<>) const noexcept {}
+  void await_resume() const noexcept {}
+};
+struct task {
+  struct promise_type {
+    task get_return_value() noexcept { return {}; }
+    task get_return_object() noexcept { return {}; }
+    std::suspend_never initial_suspend() noexcept { return {}; }
+    std::suspend_never final_suspend() noexcept { return {}; }
+    void return_void() noexcept {}
+    void unhandled_exception() {}
+  };
+};
+task foo() { co_await awaitable{}; co_return; }
+int main() { (void)foo(); }
+")
+
+check_cxx_source_compiles("${CODE_STD_CORO}" HAS_STD_CORO)
+
+# If not, try experimental
+if (NOT HAS_STD_CORO)
+    set(CODE_EXP_CORO "
+#include <experimental/coroutine>
+namespace stdx = std::experimental;
+struct awaitable {
+  bool await_ready() const noexcept { return true; }
+  void await_suspend(stdx::coroutine_handle<>) const noexcept {}
+  void await_resume() const noexcept {}
+};
+struct task {
+  struct promise_type {
+    task get_return_value() noexcept { return {}; }
+    task get_return_object() noexcept { return {}; }
+    stdx::suspend_never initial_suspend() noexcept { return {}; }
+    stdx::suspend_never final_suspend() noexcept { return {}; }
+    void return_void() noexcept {}
+    void unhandled_exception() {}
+  };
+};
+task foo() { co_await awaitable{}; co_return; }
+int main() { (void)foo(); }
+")
+    check_cxx_source_compiles("${CODE_EXP_CORO}" HAS_EXP_CORO)
+endif()
+
+# Apply definitions to your target(s) only when supported
+if (HAS_STD_CORO)
+    message(STATUS "Coroutines: std::coroutine detected")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+            ASIO_HAS_CO_AWAIT
+            ASIO_HAS_STD_COROUTINE
+    )
+elseif (HAS_EXP_CORO)
+    message(STATUS "Coroutines: experimental coroutine detected")
+    # For older toolchains using experimental coroutines, ASIO_HAS_CO_AWAIT may still work,
+    # but ASIO_HAS_STD_COROUTINE should NOT be defined.
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+            ASIO_HAS_CO_AWAIT
+    )
+else()
+    message(STATUS "Coroutines not detected; building without co_await support")
+endif()
 

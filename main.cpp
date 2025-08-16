@@ -21,10 +21,11 @@ namespace
         const auto fileSink = std::make_shared<spdlog::sinks::daily_file_sink_mt>("logs/worms_server.log", 0, 0, true);
 
         std::vector<spdlog::sink_ptr> sinks{consoleSink, fileSink};
-        const auto logger = std::make_shared<spdlog::async_logger>("Worms Server", sinks.begin(), sinks.end(),
-                                                                   // use global thread pool
-                                                                   spdlog::thread_pool(),
-                                                                   spdlog::async_overflow_policy::block);
+        const auto logger = std::make_shared<spdlog::async_logger>(
+            "Worms Server", sinks.begin(), sinks.end(),
+            // use global thread pool
+            spdlog::thread_pool(),
+            spdlog::async_overflow_policy::block);
 
         spdlog::set_level(spdlog::level::info);
         spdlog::flush_on(spdlog::level::err);
