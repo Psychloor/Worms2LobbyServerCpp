@@ -10,16 +10,19 @@
 #include "packet_code.hpp"
 #include "session_info.hpp"
 
-namespace worms_server {
+namespace worms_server
+{
     class WormsPacket;
     enum class PacketCode : uint16_t;
     enum class PacketFlags : uint16_t;
 } // namespace worms_server
 
-namespace worms_server {
+namespace worms_server
+{
     using WormsPacketPtr = std::shared_ptr<WormsPacket>;
 
-    struct PacketFields {
+    struct PacketFields
+    {
         std::optional<uint32_t> value0, value1, value2, value3, value4, value10, dataLength;
         std::optional<std::string> name;
         std::optional<std::string> data;
@@ -27,7 +30,8 @@ namespace worms_server {
         std::optional<uint32_t> error;
     };
 
-    class WormsPacket : public std::enable_shared_from_this<WormsPacket> {
+    class WormsPacket : public std::enable_shared_from_this<WormsPacket>
+    {
     public:
         static constexpr size_t MAX_DATA_LENGTH = 0x200;
         static constexpr size_t MAX_NAME_LENGTH = 20;
@@ -50,13 +54,15 @@ namespace worms_server {
         constexpr uint32_t getFlagsFromFields() const;
 
         template <PacketCode Code>
-        static const net::shared_bytes_ptr& getCachedPacket() {
-            static const auto packet = freeze(Code);
-            return packet;
+        static const net::shared_bytes_ptr& getCachedPacket()
+        {
+            static const auto PACKET = freeze(Code);
+            return PACKET;
         }
 
 
-        static const net::shared_bytes_ptr& getListEndPacket() {
+        static const net::shared_bytes_ptr& getListEndPacket()
+        {
             return getCachedPacket<PacketCode::ListEnd>();
         }
 

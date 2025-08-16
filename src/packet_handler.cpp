@@ -21,7 +21,7 @@ namespace
 {
     using namespace worms_server;
 
-    awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t leftId)
+    awaitable<void> LeaveRoom(std::shared_ptr<Room> room, uint32_t leftId)
     {
         const auto database = Database::getInstance();
         const auto users = database->getUsers();
@@ -65,8 +65,8 @@ namespace
         co_return;
     }
 
-    awaitable<bool> OnChatRoom(const std::shared_ptr<User>& clientUser,
-                               const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnChatRoom(std::shared_ptr<User> clientUser,
+                               std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value0.value_or(0) != clientUser->getId() || !packet->fields().value3
             || !packet->fields().data)
@@ -129,8 +129,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnListRooms(const std::shared_ptr<User>& clientUser,
-                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnListRooms(std::shared_ptr<User> clientUser,
+                                std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value4.value_or(0) != 0)
         {
@@ -152,8 +152,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnListUsers(const std::shared_ptr<User>& clientUser,
-                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnListUsers(std::shared_ptr<User> clientUser,
+                                std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value4.value_or(0) != 0
             || packet->fields().value2.value_or(0) != clientUser->getRoomId())
@@ -183,8 +183,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnListGames(const std::shared_ptr<User>& clientUser,
-                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnListGames(std::shared_ptr<User> clientUser,
+                                std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value4.value_or(0) != 0
             || packet->fields().value2.value_or(0) != clientUser->getRoomId())
@@ -213,8 +213,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnCreateRoom(const std::shared_ptr<User>& clientUser,
-                                 const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnCreateRoom(std::shared_ptr<User> clientUser,
+                                 std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.value_or(0) != 0
             || packet->fields().data.value_or("").empty() || packet->fields().name.value_or("").empty()
@@ -266,8 +266,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnJoin(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-                           const WormsPacketPtr& packet)
+    awaitable<bool> OnJoin(std::shared_ptr<User> clientUser, std::shared_ptr<Database> database,
+                           WormsPacketPtr packet)
     {
         if (!packet->fields().value2 || packet->fields().value10.value_or(0) != clientUser->getId())
         {
@@ -330,8 +330,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnLeave(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-                            const WormsPacketPtr& packet)
+    awaitable<bool> OnLeave(std::shared_ptr<User> clientUser, std::shared_ptr<Database> database,
+                            WormsPacketPtr packet)
     {
         if (packet->fields().value10.value_or(0) != clientUser->getId() || !packet->fields().value2)
         {
@@ -358,8 +358,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnClose(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-                            const WormsPacketPtr& packet)
+    awaitable<bool> OnClose(std::shared_ptr<User> clientUser, std::shared_ptr<Database>,
+                            WormsPacketPtr packet)
     {
         if (!packet->fields().value10)
         {
@@ -375,8 +375,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnCreateGame(const std::shared_ptr<User>& clientUser,
-                                 const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnCreateGame(std::shared_ptr<User> clientUser,
+                                 std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (packet->fields().value1.value_or(1) != 0
             || packet->fields().value2.value_or(0) != clientUser->getRoomId()
@@ -442,8 +442,8 @@ namespace
         co_return true;
     }
 
-    awaitable<bool> OnConnectGame(const std::shared_ptr<User>& clientUser,
-                                  const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> OnConnectGame(std::shared_ptr<User> clientUser,
+                                  std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         if (!packet->fields().value0)
         {
@@ -467,7 +467,7 @@ namespace
         else
         {
             clientUser->sendPacket(WormsPacket::freeze(
-                worms_server::PacketCode::ConnectGameReply, {.data = (*it)->getAddress().to_string(), .error = 0}));
+                PacketCode::ConnectGameReply, {.data = (*it)->getAddress().to_string(), .error = 0}));
         }
 
         co_return true;
@@ -478,63 +478,53 @@ namespace worms_server
 {
 
 
-    awaitable<bool> PacketHandler::handlePacket(const std::shared_ptr<User>& clientUser,
-                                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    awaitable<bool> PacketHandler::handlePacket(std::shared_ptr<User> clientUser,
+                                                std::shared_ptr<Database> database, WormsPacketPtr packet)
     {
         switch (packet->code())
         {
         case PacketCode::ChatRoom:
             spdlog::debug("Chat room packet received");
             co_return co_await OnChatRoom(clientUser, database, packet);
-            break;
 
         case PacketCode::ListRooms:
             spdlog::debug("List rooms packet received");
             co_return co_await OnListRooms(clientUser, database, packet);
-            break;
 
         case PacketCode::ListUsers:
             spdlog::debug("List users packet received");
             co_return co_await OnListUsers(clientUser, database, packet);
-            break;
 
         case PacketCode::ListGames:
             spdlog::debug("List games packet received");
             co_return co_await OnListGames(clientUser, database, packet);
-            break;
 
         case PacketCode::CreateRoom:
             spdlog::debug("Create room packet received");
             co_return co_await OnCreateRoom(clientUser, database, packet);
-            break;
 
         case PacketCode::Join:
             spdlog::debug("Join packet received");
             co_return co_await OnJoin(clientUser, database, packet);
-            break;
 
         case PacketCode::Leave:
             spdlog::debug("Leave packet received");
             co_return co_await OnLeave(clientUser, database, packet);
-            break;
 
         case PacketCode::Close:
             spdlog::debug("Close packet received");
             co_return co_await OnClose(clientUser, database, packet);
-            break;
 
         case PacketCode::CreateGame:
             spdlog::debug("Create game packet received");
             co_return co_await OnCreateGame(clientUser, database, packet);
-            break;
 
         case PacketCode::ConnectGame:
             spdlog::debug("Connect game packet received");
             co_return co_await OnConnectGame(clientUser, database, packet);
-            break;
 
         default:
-            spdlog::error("Unknown packet code: {}", static_cast<uint32_t>(packet->code()));
+            spdlog::error("Unknown packet code {}", static_cast<uint32_t>(packet->code()));
             break;
         }
 

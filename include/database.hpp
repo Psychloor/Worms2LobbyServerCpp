@@ -9,12 +9,14 @@
 
 #include <asio/ip/address_v4.hpp>
 
-namespace worms_server {
+namespace worms_server
+{
     class User;
     class Room;
     class Game;
 
-    class Database : public std::enable_shared_from_this<Database> {
+    class Database : public std::enable_shared_from_this<Database>
+    {
     public:
         [[nodiscard]] static std::shared_ptr<Database> getInstance();
         [[nodiscard]] static uint32_t getNextId();

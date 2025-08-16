@@ -32,6 +32,7 @@ namespace worms_server
         thread_pool threadPool_;
         io_context ioContext_;
         signal_set signals_;
+        bool running_;
     };
 } // namespace worms_server
 

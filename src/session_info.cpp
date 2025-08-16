@@ -55,10 +55,10 @@ namespace worms_server
 
     bool SessionInfo::verifySessionInfo(const SessionInfo& info)
     {
-        static constexpr uint32_t expected_crc2 =
+        static constexpr uint32_t EXPECTED_CRC2 =
             std::endian::native == std::endian::little ? 0x02010101U : std::byteswap(0x02010101U);
 
-        if (info.crc1 != 0x17171717U || info.crc2 != expected_crc2)
+        if (info.crc1 != 0x17171717U || info.crc2 != EXPECTED_CRC2)
         {
             spdlog::error("CRC Missmatch - CRC1: {} CRC2: {}", info.crc1, info.crc2);
             return false;

@@ -17,6 +17,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Ensures -std=c++23 instead of -std=gnu++23
 
+add_definitions(-DASIO_HAS_CO_AWAIT)
+add_definitions(-DASIO_HAS_STD_COROUTINE)
+
 if (MSVC)
     if (NOT CMAKE_GENERATOR STREQUAL "Ninja")
         add_definitions(/MP)    # parallelize each target, unless Ninja is the generator

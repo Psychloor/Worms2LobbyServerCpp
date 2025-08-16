@@ -39,10 +39,15 @@ namespace
     }
 
     bool ParseCommandLineArguments(
-        const int argc, char** argv, uint16_t& port, size_t& maxConnections, size_t& maxThreads)
+        const int argc, char** argv, uint16_t& port, size_t& maxConnections, size_t& maxThreads) // NOLINT(*-easily-swappable-parameters)
     {
-
-        auto args = std::vector<std::string>(argv, argv + argc); // NOLINT(*-pro-bounds-pointer-arithmetic)
+        const auto rawArgs = std::span(argv, static_cast<size_t>(argc));
+        std::vector<std::string> args;
+        args.reserve(rawArgs.size());
+        for (const char* p : rawArgs)
+        {
+            args.emplace_back(p);
+        }
 
         for (const auto argsSlide = std::ranges::slide_view(args, 2); const auto& arg : argsSlide)
         {
@@ -95,7 +100,7 @@ namespace
                     "threads (default: "
                     << std::thread::hardware_concurrency() << ")\n"
                     << "  -h, --help				Print this help message\n"
-                    << '\n';
+                    << '\n' << std::flush;
                 return true;
             }
         }
@@ -118,22 +123,15 @@ int main(const int argc, char** argv)
             return 0;
         }
 
-        try
-        {
-            worms_server::Server server(port, maxConnections);
-            server.run(maxThreads);
-        }
-        catch (const std::exception& e)
-        {
-            spdlog::error("Fatal: {}", e.what());
-            return 1;
-        }
+        worms_server::Server server(port, maxConnections);
+        server.run(maxThreads);
     }
     catch (const std::exception& e)
     {
         spdlog::error("Fatal: {}", e.what());
         return 1;
     }
+
     catch (...)
     {
         spdlog::error("Fatal: Unknown exception");

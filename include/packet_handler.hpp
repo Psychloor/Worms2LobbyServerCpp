@@ -25,9 +25,9 @@ namespace worms_server
     {
     public:
         static awaitable<bool> handlePacket(
-            const std::shared_ptr<User>& clientUser,
-            const std::shared_ptr<Database>& database,
-            const WormsPacketPtr& packet);
+            std::shared_ptr<User> clientUser,
+            std::shared_ptr<Database> database,
+            WormsPacketPtr packet);
     };
 }
 

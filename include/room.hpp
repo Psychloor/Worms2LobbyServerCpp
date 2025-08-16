@@ -30,28 +30,11 @@ namespace worms_server
 
         Room(const Room& other) = delete;
 
-        Room(Room&& other) noexcept :
-            id_(other.id_),
-            name_(std::move(other.name_)),
-            sessionInfo_(other.sessionInfo_),
-            address_(std::move(other.address_))
-        {
-        }
+        Room(Room&& other) noexcept = delete;
 
         Room& operator=(const Room& other) = delete;
 
-        Room& operator=(Room&& other) noexcept
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-            id_ = other.id_;
-            name_ = std::move(other.name_);
-            sessionInfo_ = other.sessionInfo_;
-            address_ = std::move(other.address_);
-            return *this;
-        }
+        Room& operator=(Room&& other) noexcept = delete;
 
     private:
         uint32_t id_;
