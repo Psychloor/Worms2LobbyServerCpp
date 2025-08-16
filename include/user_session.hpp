@@ -5,22 +5,26 @@
 #ifndef USER_SESSION_HPP
 #define USER_SESSION_HPP
 
-#include "concurrentqueue/concurrentqueue.h"
+#include "moodycamel/concurrentqueue.h"
 
 #include <asio.hpp>
+#include <coroutine>
 #include "packet_buffers.hpp"
 
-namespace worms_server {
+namespace worms_server
+{
     class Database;
     class Room;
     class User;
 } // namespace worms_server
 
-namespace worms_server {
+namespace worms_server
+{
     using asio::awaitable;
     using asio::use_awaitable;
 
-    class UserSession final : public std::enable_shared_from_this<UserSession> {
+    class UserSession final : public std::enable_shared_from_this<UserSession>
+    {
     public:
         explicit UserSession(asio::ip::tcp::socket socket);
         ~UserSession();
@@ -29,6 +33,11 @@ namespace worms_server {
 
         void sendPacket(const net::shared_bytes_ptr& packet);
         asio::ip::address_v4 addressV4() const;
+
+        UserSession(const UserSession& other) = delete;
+        UserSession(UserSession&& other) noexcept = delete;
+        UserSession& operator=(const UserSession& other) = delete;
+        UserSession& operator=(UserSession&& other) noexcept = delete;
 
     private:
         awaitable<std::shared_ptr<User>> handleLogin();

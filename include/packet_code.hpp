@@ -9,7 +9,7 @@
 
 namespace worms_server
 {
-    enum class PacketCode : uint32_t
+    enum class PacketCode : uint16_t
     {
         Unknown          = 0,
         ListRooms        = 200,
@@ -40,6 +40,7 @@ namespace worms_server
     {
         switch (code)
         {
+        case static_cast<uint32_t>(PacketCode::Login):
         case static_cast<uint32_t>(PacketCode::ListRooms):
         case static_cast<uint32_t>(PacketCode::ListUsers):
         case static_cast<uint32_t>(PacketCode::ListGames):
@@ -50,10 +51,6 @@ namespace worms_server
         case static_cast<uint32_t>(PacketCode::CreateGame):
         case static_cast<uint32_t>(PacketCode::ChatRoom):
         case static_cast<uint32_t>(PacketCode::ConnectGame):
-            return true;
-
-        // since the reader relies on this, need to add login here for it
-        case static_cast<uint32_t>(PacketCode::Login):
             return true;
 
         default:

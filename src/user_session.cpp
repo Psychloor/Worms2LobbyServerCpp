@@ -14,8 +14,11 @@
 #include "worms_packet.hpp"
 #include <asio/steady_timer.hpp>
 
-namespace worms_server {
-    static awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t left_id) {
+namespace
+{
+    using namespace worms_server;
+
+    awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t leftId) {
         const auto database    = Database::getInstance();
         const auto users       = database->getUsers();
         const auto games       = database->getGames();
@@ -23,12 +26,12 @@ namespace worms_server {
 
 
         spdlog::debug("User Session: Leaving room {}", roomId);
-        const auto hasOtherUsers = std::ranges::any_of(users, [left_id, roomId](const auto& user) {
-            return user->getId() != left_id && user->getRoomId() == roomId;
+        const auto hasOtherUsers = std::ranges::any_of(users, [leftId, roomId](const auto& user) {
+            return user->getId() != leftId && user->getRoomId() == roomId;
         });
 
-        const auto hasOtherGames = std::ranges::any_of(games, [left_id, roomId](const auto& game) {
-            return game->getId() != left_id && game->getRoomId() == roomId;
+        const auto hasOtherGames = std::ranges::any_of(games, [leftId, roomId](const auto& game) {
+            return game->getId() != leftId && game->getRoomId() == roomId;
         });
 
         const bool roomClosed = room && !hasOtherUsers && !hasOtherGames;
@@ -38,11 +41,11 @@ namespace worms_server {
         }
 
         const auto roomLeavePacketBytes =
-            WormsPacket::freeze(PacketCode::Leave, {.value2 = roomId, .value10 = left_id});
+            WormsPacket::freeze(PacketCode::Leave, {.value2 = roomId, .value10 = leftId});
         const auto roomClosePacketBytes = WormsPacket::freeze(PacketCode::Close, {.value10 = roomId});
 
         for (const auto& user : users) {
-            if (user->getId() == left_id) {
+            if (user->getId() == leftId) {
                 continue;
             }
 
@@ -58,7 +61,7 @@ namespace worms_server {
         co_return;
     }
 
-    static awaitable<void> DisconnectUser(const std::shared_ptr<User>& client_user) {
+    awaitable<void> DisconnectUser(const std::shared_ptr<User>& client_user) {
         if (client_user == nullptr) {
             co_return;
         }
@@ -107,6 +110,10 @@ namespace worms_server {
 
         co_return;
     }
+}
+
+namespace worms_server {
+
 
     UserSession::UserSession(ip::tcp::socket socket)
         : database_(Database::getInstance()), socket_(std::move(socket)), timer_(socket_.get_executor()),
@@ -133,7 +140,7 @@ namespace worms_server {
 
     awaitable<void> UserSession::run() {
         // Keep ref alive for the full coroutine lifetime
-        auto self = shared_from_this();
+        [[maybe_unused]] auto self = shared_from_this();
 
         co_spawn(strand_, [self = shared_from_this()]() -> awaitable<void> { co_await self->writer(); }, detached);
 

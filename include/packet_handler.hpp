@@ -5,8 +5,8 @@
 #ifndef PACKET_ROUTER_HPP
 #define PACKET_ROUTER_HPP
 
-#include <asio.hpp>
 #include <memory>
+#include "asio.hpp"
 
 #include "worms_packet.hpp"
 
@@ -19,7 +19,7 @@ namespace worms_server
     class User;
     class Database;
     class WormsPacket;
-    enum class PacketCode : std::uint32_t;
+    enum class PacketCode : std::uint16_t;
 
     class PacketHandler final
     {

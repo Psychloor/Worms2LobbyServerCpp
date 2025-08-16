@@ -11,16 +11,18 @@
 
 #include <asio/ip/address_v4.hpp>
 #include "session_info.hpp"
-#include "worms_packet.hpp"
 
-namespace worms_server {
+namespace worms_server
+{
     class UserSession;
 
-    class User {
+    class User
+    {
     public:
         explicit User(const std::shared_ptr<UserSession>& session, uint32_t id, std::string_view name, Nation nation);
 
-        ~User() {
+        ~User()
+        {
             spdlog::debug("User {} has been destroyed", id_);
         }
 
@@ -33,6 +35,11 @@ namespace worms_server {
         void sendPacket(const net::shared_bytes_ptr& packet) const;
 
         asio::ip::address_v4 getAddress() const;
+
+        User(const User& other) = delete;
+        User(User&& other) noexcept = delete;
+        User& operator=(const User& other) = delete;
+        User& operator=(User&& other) noexcept = delete;
 
     private:
         uint32_t id_;

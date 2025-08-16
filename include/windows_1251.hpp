@@ -106,7 +106,7 @@ namespace worms_server {
                 0x043F, 0x0440, 0x0441, 0x0442, 0x0443, 0x0444, 0x0445, 0x0446, 0x0447, 0x0448, 0x0449, 0x044A, 0x044B,
                 0x044C, 0x044D, 0x044E, 0x044F};
 
-            return (c < 0x80) ? c : TABLE[c - 0x80];
+            return (c < 0x80) ? c : TABLE.at(c - 0x80);
         }
 
         static size_t utf8ToCodepoint(const std::string_view input, const size_t pos, uint32_t& codepoint) {

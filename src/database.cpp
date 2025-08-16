@@ -27,13 +27,13 @@ namespace worms_server
             throw std::runtime_error("database not initialized");
         }
 
-        if (uint32_t recycledId; instance->recycledIds_.try_dequeue(recycledId))
+        if (uint32_t recycledId = 0; instance->recycledIds_.try_dequeue(recycledId))
         {
             return recycledId;
         }
 
         uint32_t id = instance->nextId_.fetch_add(1, std::memory_order::relaxed);
-        if (id == 0 || id < K_START)
+        if (id < K_START)
         {
             id = K_START;
             instance->nextId_.store(id + 1, std::memory_order::relaxed);
@@ -144,7 +144,7 @@ namespace worms_server
         return (it != view.end()) ? *it : nullptr;
     }
 
-    void Database::setUserRoomId(const uint32_t userId, const uint32_t roomId)
+    void Database::setUserRoomId(const uint32_t userId, const uint32_t roomId) // NOLINT(*-easily-swappable-parameters)
     {
         const std::unique_lock lock(usersMutex_);
         const auto it = std::ranges::find_if(

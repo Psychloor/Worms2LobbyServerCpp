@@ -1,10 +1,11 @@
 ﻿#ifndef DATABASE_HPP
 #define DATABASE_HPP
 
-#include <concurrentqueue/concurrentqueue.h>
+#include <atomic>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
+#include <moodycamel/concurrentqueue.h>
 
 #include <asio/ip/address_v4.hpp>
 
@@ -13,7 +14,7 @@ namespace worms_server {
     class Room;
     class Game;
 
-    class Database : std::enable_shared_from_this<Database> {
+    class Database : public std::enable_shared_from_this<Database> {
     public:
         [[nodiscard]] static std::shared_ptr<Database> getInstance();
         [[nodiscard]] static uint32_t getNextId();

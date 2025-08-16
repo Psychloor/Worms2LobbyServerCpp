@@ -79,7 +79,7 @@ namespace worms_server {
             }
 
             // 0x80–0x9F range
-            return CP1252_TABLE[byte - 0x80];
+            return CP1252_TABLE.at(byte - 0x80);
         }
 
         // Encode: Unicode codepoint to CP1252 byte
@@ -93,7 +93,7 @@ namespace worms_server {
             }
 
             for (size_t i = 0; i < CP1252_TABLE.size(); ++i) {
-                if (CP1252_TABLE[i] == cp) {
+                if (CP1252_TABLE.at(i) == cp) {
                     return static_cast<uint8_t>(i + 0x80);
                 }
             }

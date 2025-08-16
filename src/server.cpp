@@ -9,35 +9,44 @@
 #include "user_session.hpp"
 
 
-namespace worms_server {
+namespace worms_server
+{
     std::atomic<unsigned int> Server::connectionCount{0};
 
-    Server::Server(const uint16_t port, const size_t maxConnections)
-        : port_(port), maxConnections_(maxConnections),
-          threadPool_(std::max(1u, std::thread::hardware_concurrency())), signals_(ioContext_, SIGINT, SIGTERM) {
+    Server::Server(const uint16_t port, const size_t maxConnections) : // NOLINT(*-easily-swappable-parameters)
+        port_(port), maxConnections_(maxConnections),
+        threadPool_(std::max(1U, std::thread::hardware_concurrency())), signals_(ioContext_, SIGINT, SIGTERM)
+    {
         signals_.async_wait([this](const error_code&, int) { stop(); });
     }
 
-    awaitable<void> Server::listener() {
+    awaitable<void> Server::listener()
+    {
         auto executor = co_await this_coro::executor;
         ip::tcp::acceptor acceptor(executor, {ip::tcp::v4(), port_});
 
-        if (acceptor.is_open()) {
+        if (acceptor.is_open())
+        {
             acceptor.set_option(ip::tcp::acceptor::reuse_address(true));
             spdlog::info("Listening on port {}", port_);
-        } else {
+        }
+        else
+        {
             spdlog::error("Failed to open listener on port: {}", port_);
             co_return;
         }
 
-        for (;;) {
+        for (;;)
+        {
             ip::tcp::socket socket(executor);
             error_code ec;
 
             co_await acceptor.async_accept(socket, redirect_error(use_awaitable, ec));
 
-            if (!ec) {
-                if (connectionCount.load(std::memory_order_acquire) >= maxConnections_) {
+            if (!ec)
+            {
+                if (connectionCount.load(std::memory_order_acquire) >= maxConnections_)
+                {
                     spdlog::warn("Too many connections, refusing client");
                     socket.close();
                     continue;
@@ -48,17 +57,21 @@ namespace worms_server {
 
                 const auto session = std::make_shared<UserSession>(std::move(socket));
                 co_spawn(ioContext_, std::move(session)->run(), detached);
-            } else {
+            }
+            else
+            {
                 spdlog::error("Accept error: {}", ec.message());
             }
         }
     }
 
-    void Server::run(const size_t threadCount) {
+    void Server::run(const size_t threadCount)
+    {
         co_spawn(ioContext_, listener(), detached);
         spdlog::info("Press Ctrl+C to exit");
 
-        for (size_t i = 0; i < threadCount - 1; ++i) {
+        for (size_t i = 0; i < threadCount - 1; ++i)
+        {
             post(ioContext_, [this]() { ioContext_.run(); });
         }
 
@@ -69,7 +82,8 @@ namespace worms_server {
         threadPool_.join();
     }
 
-    void Server::stop() {
+    void Server::stop()
+    {
         ioContext_.stop();
         threadPool_.stop();
     }

@@ -14,6 +14,7 @@
 namespace worms_server
 {
     class User;
+
     class Room
     {
     public:
@@ -26,6 +27,31 @@ namespace worms_server
         [[nodiscard]] std::string_view getName() const;
         [[nodiscard]] const SessionInfo& getSessionInfo() const;
         [[nodiscard]] asio::ip::address_v4 getAddress() const;
+
+        Room(const Room& other) = delete;
+
+        Room(Room&& other) noexcept :
+            id_(other.id_),
+            name_(std::move(other.name_)),
+            sessionInfo_(other.sessionInfo_),
+            address_(std::move(other.address_))
+        {
+        }
+
+        Room& operator=(const Room& other) = delete;
+
+        Room& operator=(Room&& other) noexcept
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+            id_ = other.id_;
+            name_ = std::move(other.name_);
+            sessionInfo_ = other.sessionInfo_;
+            address_ = std::move(other.address_);
+            return *this;
+        }
 
     private:
         uint32_t id_;

@@ -12,8 +12,8 @@
 
 namespace worms_server {
     class WormsPacket;
-    enum class PacketCode : uint32_t;
-    enum class PacketFlags : uint32_t;
+    enum class PacketCode : uint16_t;
+    enum class PacketFlags : uint16_t;
 } // namespace worms_server
 
 namespace worms_server {
@@ -27,7 +27,7 @@ namespace worms_server {
         std::optional<uint32_t> error;
     };
 
-    class WormsPacket : std::enable_shared_from_this<WormsPacket> {
+    class WormsPacket : public std::enable_shared_from_this<WormsPacket> {
     public:
         static constexpr size_t MAX_DATA_LENGTH = 0x200;
         static constexpr size_t MAX_NAME_LENGTH = 20;

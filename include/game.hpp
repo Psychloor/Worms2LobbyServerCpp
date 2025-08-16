@@ -7,16 +7,19 @@
 
 #include "spdlog/spdlog.h"
 
-#include "session_info.hpp"
 #include <asio/ip/address_v4.hpp>
+#include "session_info.hpp"
 
-namespace worms_server {
-    class Game {
+namespace worms_server
+{
+    class Game
+    {
     public:
         explicit Game(uint32_t id, std::string_view name, Nation nation, uint32_t roomId, asio::ip::address_v4 address,
-            SessionAccess access);
+                      SessionAccess access);
 
-        ~Game() {
+        ~Game()
+        {
             spdlog::debug("Game {} has been destroyed", id_);
         }
 
@@ -25,6 +28,12 @@ namespace worms_server {
         [[nodiscard]] const SessionInfo& getSessionInfo() const;
         [[nodiscard]] asio::ip::address_v4 getAddress() const;
         [[nodiscard]] uint32_t getRoomId() const;
+
+        Game(const Game& other) = delete;
+        Game(Game&& other) = delete;
+
+        Game& operator=(const Game& other) = delete;
+        Game& operator=(Game&& other) = delete;
 
     private:
         uint32_t id_;

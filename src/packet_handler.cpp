@@ -17,36 +17,47 @@
 
 using namespace std::string_view_literals;
 
-namespace worms_server {
-    static awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t left_id) {
-        const auto database    = Database::getInstance();
-        const auto users       = database->getUsers();
+namespace
+{
+    using namespace worms_server;
+
+    awaitable<void> LeaveRoom(const std::shared_ptr<Room>& room, uint32_t leftId)
+    {
+        const auto database = Database::getInstance();
+        const auto users = database->getUsers();
         const uint32_t roomId = room == nullptr ? 5 : room->getId();
 
-        const bool roomClosed = room != nullptr && !std::ranges::any_of(users, [left_id, roomId](const auto& user) {
-            return user->getId() != left_id && user->getRoomId() == roomId;
-        }) && !std::ranges::any_of(database->getGames(), [left_id, roomId](const auto& game) {
-            return game->getId() != left_id && game->getRoomId() == roomId;
+        const bool roomClosed = room != nullptr && !std::ranges::any_of(users, [leftId, roomId](const auto& user)
+        {
+            return user->getId() != leftId && user->getRoomId() == roomId;
+        }) && !std::ranges::any_of(database->getGames(), [leftId, roomId](const auto& game)
+        {
+            return game->getId() != leftId && game->getRoomId() == roomId;
         });
 
-        if (roomClosed) {
+        if (roomClosed)
+        {
             database->removeRoom(roomId);
         }
 
         const auto roomLeavePacketBytes =
-            WormsPacket::freeze(PacketCode::Leave, {.value2 = roomId, .value10 = left_id});
+            WormsPacket::freeze(PacketCode::Leave, {.value2 = roomId, .value10 = leftId});
         const auto roomClosePacketBytes = WormsPacket::freeze(PacketCode::Close, {.value10 = roomId});
-        
-        for (const auto& user : users) {
-            if (user->getId() == left_id) {
+
+        for (const auto& user : users)
+        {
+            if (user->getId() == leftId)
+            {
                 continue;
             }
 
-            if (room != nullptr) {
+            if (room != nullptr)
+            {
                 user->sendPacket(roomLeavePacketBytes);
             }
 
-            if (roomClosed) {
+            if (roomClosed)
+            {
                 user->sendPacket(roomClosePacketBytes);
             }
         }
@@ -54,29 +65,35 @@ namespace worms_server {
         co_return;
     }
 
-    static awaitable<bool> OnChatRoom(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
+    awaitable<bool> OnChatRoom(const std::shared_ptr<User>& clientUser,
+                               const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
         if (packet->fields().value0.value_or(0) != clientUser->getId() || !packet->fields().value3
-            || !packet->fields().data) {
+            || !packet->fields().data)
+        {
             spdlog::error("Invalid packet data\n");
             co_return false;
         }
 
-        const auto& targetId         = *packet->fields().value3;
-        const auto clientRoomId     = clientUser->getRoomId();
-        const string_view message     = *packet->fields().data;
-        const auto clientId          = clientUser->getId();
-        const string_view clientName = clientUser->getName();
+        const auto& targetId = *packet->fields().value3;
+        const auto clientRoomId = clientUser->getRoomId();
+        const std::string_view message = *packet->fields().data;
+        const auto clientId = clientUser->getId();
+        const std::string_view clientName = clientUser->getName();
 
-        if (message.starts_with(std::format("GRP:[ {} ]  "sv, clientName))) {
+        if (message.starts_with(std::format("GRP:[ {} ]  "sv, clientName)))
+        {
             // Check if the user can access the room.
-            if (clientRoomId == targetId) {
+            if (clientRoomId == targetId)
+            {
                 // Notify all users of the room.
                 const auto packetBytes = WormsPacket::freeze(
                     PacketCode::ChatRoom, {.value0 = clientId, .value3 = clientRoomId, .data = message.data()});
 
-                for (const auto& user : database->getUsers()) {
-                    if (user->getRoomId() == clientRoomId && user->getId() != clientId) {
+                for (const auto& user : database->getUsers())
+                {
+                    if (user->getRoomId() == clientRoomId && user->getId() != clientId)
+                    {
                         user->sendPacket(packetBytes);
                     }
                 }
@@ -91,9 +108,11 @@ namespace worms_server {
             co_return true;
         }
 
-        if (message.starts_with(std::format("PRV:[ {} ]  "sv, clientName))) {
+        if (message.starts_with(std::format("PRV:[ {} ]  "sv, clientName)))
+        {
             const auto& targetUser = database->getUser(targetId);
-            if (targetUser == nullptr || targetUser->getRoomId() != clientRoomId) {
+            if (targetUser == nullptr || targetUser->getRoomId() != clientRoomId)
+            {
                 clientUser->sendPacket(WormsPacket::freeze(PacketCode::ChatRoomReply, {.error = 1}));
                 co_return true;
             }
@@ -110,19 +129,22 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnListRooms(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
-        if (packet->fields().value4.value_or(0) != 0) {
+    awaitable<bool> OnListRooms(const std::shared_ptr<User>& clientUser,
+                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
+        if (packet->fields().value4.value_or(0) != 0)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
-        for (const auto rooms = database->getRooms(); const auto& room : rooms) {
+        for (const auto rooms = database->getRooms(); const auto& room : rooms)
+        {
             clientUser->sendPacket(
-                WormsPacket::freeze(PacketCode::ListItem, {.value1  = room->getId(),
-                                                                 .name = std::string(room->getName()),
-                                                                 .data = "",
-                                                                 .info = room->getSessionInfo()}));
+                WormsPacket::freeze(PacketCode::ListItem, {.value1 = room->getId(),
+                                                           .name = std::string(room->getName()),
+                                                           .data = "",
+                                                           .info = room->getSessionInfo()}));
         }
 
         clientUser->sendPacket(WormsPacket::getListEndPacket());
@@ -130,26 +152,30 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnListUsers(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
+    awaitable<bool> OnListUsers(const std::shared_ptr<User>& clientUser,
+                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
         if (packet->fields().value4.value_or(0) != 0
-            || packet->fields().value2.value_or(0) != clientUser->getRoomId()) {
+            || packet->fields().value2.value_or(0) != clientUser->getRoomId())
+        {
             spdlog::error("List Users: Invalid packet data");
             co_return false;
         }
 
-        const auto users   = database->getUsers();
+        const auto users = database->getUsers();
         const auto roomId = clientUser->getRoomId();
-        for (const auto& user : users) {
-            if (user->getRoomId() != roomId) {
+        for (const auto& user : users)
+        {
+            if (user->getRoomId() != roomId)
+            {
                 continue;
             }
 
             clientUser->sendPacket(
-                WormsPacket::freeze(PacketCode::ListItem, {.value1  = user->getId(),
-                                                                 .name = std::string(user->getName()),
-                                                                 .data = "",
-                                                                 .info = user->getSessionInfo()}));
+                WormsPacket::freeze(PacketCode::ListItem, {.value1 = user->getId(),
+                                                           .name = std::string(user->getName()),
+                                                           .data = "",
+                                                           .info = user->getSessionInfo()}));
         }
 
         clientUser->sendPacket(WormsPacket::getListEndPacket());
@@ -157,25 +183,29 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnListGames(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
+    awaitable<bool> OnListGames(const std::shared_ptr<User>& clientUser,
+                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
         if (packet->fields().value4.value_or(0) != 0
-            || packet->fields().value2.value_or(0) != clientUser->getRoomId()) {
+            || packet->fields().value2.value_or(0) != clientUser->getRoomId())
+        {
             spdlog::error("List Games: Invalid packet data");
             co_return false;
         }
 
         const auto games = database->getGames();
-        for (const auto& game : games) {
-            if (game->getRoomId() != clientUser->getRoomId()) {
+        for (const auto& game : games)
+        {
+            if (game->getRoomId() != clientUser->getRoomId())
+            {
                 continue;
             }
 
             clientUser->sendPacket(
-                WormsPacket::freeze(PacketCode::ListItem, {.value1  = game->getId(),
-                                                                 .name = std::string(game->getName()),
-                                                                 .data = game->getAddress().to_string(),
-                                                                 .info = game->getSessionInfo()}));
+                WormsPacket::freeze(PacketCode::ListItem, {.value1 = game->getId(),
+                                                           .name = std::string(game->getName()),
+                                                           .data = game->getAddress().to_string(),
+                                                           .info = game->getSessionInfo()}));
         }
 
         clientUser->sendPacket(WormsPacket::getListEndPacket());
@@ -183,41 +213,47 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnCreateRoom(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
+    awaitable<bool> OnCreateRoom(const std::shared_ptr<User>& clientUser,
+                                 const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
         if (packet->fields().value1.value_or(0) != 0 || packet->fields().value4.value_or(0) != 0
             || packet->fields().data.value_or("").empty() || packet->fields().name.value_or("").empty()
-            || !packet->fields().info) {
+            || !packet->fields().info)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Check if the room name is valid is not already taken.
-        const string_view requestedRoomName = *packet->fields().name;
-        if (std::ranges::any_of(database->getRooms(), [requestedRoomName](const auto& room) -> bool {
-                return EqualsCaseInsensitive(requestedRoomName, room->getName());
-            })) {
+        const std::string_view requestedRoomName = *packet->fields().name;
+        if (std::ranges::any_of(database->getRooms(), [requestedRoomName](const auto& room) -> bool
+        {
+            return EqualsCaseInsensitive(requestedRoomName, room->getName());
+        }))
+        {
             clientUser->sendPacket(WormsPacket::freeze(PacketCode::CreateRoomReply, {.value1 = 0, .error = 1}));
 
             co_return true;
         }
 
         const auto roomId = Database::getNextId();
-        const auto room    = std::make_shared<worms_server::Room>(
+        const auto room = std::make_shared<worms_server::Room>(
             roomId, *packet->fields().name, packet->fields().info->playerNation, clientUser->getAddress());
         Database::getInstance()->addRoom(room);
 
 
         const auto roomPacketBytes =
-            WormsPacket::freeze(PacketCode::CreateRoom, {.value1    = roomId,
-                                                               .value4 = 0,
-                                                               .name   = std::string(room->getName()),
-                                                               .data   = "",
-                                                               .info   = room->getSessionInfo()});
+            WormsPacket::freeze(PacketCode::CreateRoom, {.value1 = roomId,
+                                                         .value4 = 0,
+                                                         .name = std::string(room->getName()),
+                                                         .data = "",
+                                                         .info = room->getSessionInfo()});
 
         // notify others
-        for (const auto& user : database->getUsers()) {
-            if (user->getId() == clientUser->getId()) {
+        for (const auto& user : database->getUsers())
+        {
+            if (user->getId() == clientUser->getId())
+            {
                 continue;
             }
 
@@ -230,9 +266,11 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnJoin(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-        const WormsPacketPtr& packet) {
-        if (!packet->fields().value2 || packet->fields().value10.value_or(0) != clientUser->getId()) {
+    awaitable<bool> OnJoin(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
+                           const WormsPacketPtr& packet)
+    {
+        if (!packet->fields().value2 || packet->fields().value10.value_or(0) != clientUser->getId())
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
@@ -240,14 +278,20 @@ namespace worms_server {
         // Require a valid room or game ID.
         // Check rooms
         if (std::ranges::any_of(database->getRooms(),
-                [join_id = packet->fields().value2](const auto& room) -> bool { return room->getId() == join_id; })) {
+                                [join_id = packet->fields().value2](const auto& room) -> bool
+                                {
+                                    return room->getId() == join_id;
+                                }))
+        {
             clientUser->setRoomId(*packet->fields().value2);
 
             // Notify other users about the join.
             const auto packetBytes = WormsPacket::freeze(
                 PacketCode::Join, {.value2 = packet->fields().value2, .value10 = clientUser->getId()});
-            for (const auto& user : database->getUsers()) {
-                if (user->getId() == clientUser->getId()) {
+            for (const auto& user : database->getUsers())
+            {
+                if (user->getId() == clientUser->getId())
+                {
                     continue;
                 }
                 user->sendPacket(packetBytes);
@@ -259,14 +303,19 @@ namespace worms_server {
 
         // Check games
         if (std::ranges::any_of(database->getGames(),
-                [join_id = *packet->fields().value2, room_id = clientUser->getRoomId()](const auto& game) -> bool {
-                    return game->getId() == join_id && game->getRoomId() == room_id;
-                })) {
+                                [join_id = *packet->fields().value2, room_id = clientUser->getRoomId()](
+                                const auto& game) -> bool
+                                {
+                                    return game->getId() == join_id && game->getRoomId() == room_id;
+                                }))
+        {
             // Notify other users about the join.
             const auto packetBytes = WormsPacket::freeze(
                 PacketCode::Join, {.value2 = clientUser->getRoomId(), .value10 = clientUser->getId()});
-            for (const auto& user : database->getUsers()) {
-                if (user->getId() == clientUser->getId()) {
+            for (const auto& user : database->getUsers())
+            {
+                if (user->getId() == clientUser->getId())
+                {
                     continue;
                 }
                 user->sendPacket(packetBytes);
@@ -281,16 +330,19 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnLeave(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-        const WormsPacketPtr& packet) {
-        if (packet->fields().value10.value_or(0) != clientUser->getId() || !packet->fields().value2) {
+    awaitable<bool> OnLeave(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
+                            const WormsPacketPtr& packet)
+    {
+        if (packet->fields().value10.value_or(0) != clientUser->getId() || !packet->fields().value2)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Require valid room ID (never sent for games, users disconnect if
         // leaving a game).
-        if (packet->fields().value2 == clientUser->getRoomId()) {
+        if (packet->fields().value2 == clientUser->getRoomId())
+        {
             co_await LeaveRoom(database->getRoom(clientUser->getRoomId()), clientUser->getId());
             clientUser->setRoomId(0);
 
@@ -306,9 +358,11 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnClose(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
-        const WormsPacketPtr& packet) {
-        if (!packet->fields().value10) {
+    awaitable<bool> OnClose(const std::shared_ptr<User>& clientUser, const std::shared_ptr<Database>& database,
+                            const WormsPacketPtr& packet)
+    {
+        if (!packet->fields().value10)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
@@ -321,43 +375,52 @@ namespace worms_server {
         co_return true;
     }
 
-    static awaitable<bool> OnCreateGame(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
+    awaitable<bool> OnCreateGame(const std::shared_ptr<User>& clientUser,
+                                 const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
         if (packet->fields().value1.value_or(1) != 0
             || packet->fields().value2.value_or(0) != clientUser->getRoomId()
             || packet->fields().value4.value_or(0) != 0x800 || !packet->fields().data || !packet->fields().name
-            || !packet->fields().info) {
+            || !packet->fields().info)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Require valid room ID and IP.
         ip::address parsedIp;
-        try {
+        try
+        {
             parsedIp = ip::make_address(*packet->fields().data);
-        } catch (const error_code& e) {
+        }
+        catch (const error_code& e)
+        {
             spdlog::error("Invalid IP address: " + e.message());
             co_return false;
         }
 
-        if (parsedIp.is_v4() && clientUser->getAddress() == parsedIp) {
+        if (parsedIp.is_v4() && clientUser->getAddress() == parsedIp)
+        {
             // Create a new game.
             const auto gameId = Database::getNextId();
-            const auto game    = std::make_shared<worms_server::Game>(gameId, clientUser->getName(),
-                   clientUser->getSessionInfo().playerNation, clientUser->getRoomId(), clientUser->getAddress(),
-                   packet->fields().info->access);
+            const auto game = std::make_shared<worms_server::Game>(gameId, clientUser->getName(),
+                                                                   clientUser->getSessionInfo().playerNation,
+                                                                   clientUser->getRoomId(), clientUser->getAddress(),
+                                                                   packet->fields().info->access);
             database->addGame(game);
 
             // Notify other users about the new game, even those in other rooms.
             const auto packet_bytes =
-                WormsPacket::freeze(PacketCode::CreateGame, {.value1    = gameId,
-                                                                   .value2 = game->getRoomId(),
-                                                                   .value4 = 0x800,
-                                                                   .name   = std::string(game->getName()),
-                                                                   .data   = game->getAddress().to_string(),
-                                                                   .info   = game->getSessionInfo()});
-            for (const auto& user : database->getUsers()) {
-                if (user->getId() == clientUser->getId()) {
+                WormsPacket::freeze(PacketCode::CreateGame, {.value1 = gameId,
+                                                             .value2 = game->getRoomId(),
+                                                             .value4 = 0x800,
+                                                             .name = std::string(game->getName()),
+                                                             .data = game->getAddress().to_string(),
+                                                             .info = game->getSessionInfo()});
+            for (const auto& user : database->getUsers())
+            {
+                if (user->getId() == clientUser->getId())
+                {
                     continue;
                 }
                 user->sendPacket(packet_bytes);
@@ -371,42 +434,55 @@ namespace worms_server {
 
         clientUser->sendPacket(WormsPacket::freeze(PacketCode::CreateGameReply, {.value1 = 0, .error = 2}));
         clientUser->sendPacket(WormsPacket::freeze(
-            PacketCode::ChatRoom, {.value0    = clientUser->getId(),
-                                        .value3 = clientUser->getRoomId(),
-                                        .data   = "GRP:Cannot host your game. Please use FrontendKitWS with "
-                                                  "fkNetcode. More information at worms2d.info/fkNetcode"}));
+            PacketCode::ChatRoom, {.value0 = clientUser->getId(),
+                                   .value3 = clientUser->getRoomId(),
+                                   .data = "GRP:Cannot host your game. Please use FrontendKitWS with "
+                                   "fkNetcode. More information at worms2d.info/fkNetcode"}));
 
         co_return true;
     }
 
-    static awaitable<bool> OnConnectGame(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
-        if (!packet->fields().value0) {
+    awaitable<bool> OnConnectGame(const std::shared_ptr<User>& clientUser,
+                                  const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
+        if (!packet->fields().value0)
+        {
             spdlog::error("Invalid packet data");
             co_return false;
         }
 
         // Require valid game ID and user to be in appropriate room.
-        const auto games   = database->getGames();
+        const auto games = database->getGames();
         const auto gameId = packet->fields().value0;
         const auto roomId = clientUser->getRoomId();
-        const auto it      = std::ranges::find_if(games, [gameId, roomId](const auto& game) -> bool {
+        const auto it = std::ranges::find_if(games, [gameId, roomId](const auto& game) -> bool
+        {
             return game->getId() == gameId && game->getRoomId() == roomId;
         });
 
-        if (it == games.end()) {
+        if (it == games.end())
+        {
             clientUser->sendPacket(WormsPacket::freeze(PacketCode::ConnectGameReply, {.data = "", .error = 1}));
-        } else {
+        }
+        else
+        {
             clientUser->sendPacket(WormsPacket::freeze(
-                PacketCode::ConnectGameReply, {.data = (*it)->getAddress().to_string(), .error = 0}));
+                worms_server::PacketCode::ConnectGameReply, {.data = (*it)->getAddress().to_string(), .error = 0}));
         }
 
         co_return true;
     }
+}
+
+namespace worms_server
+{
+
 
     awaitable<bool> PacketHandler::handlePacket(const std::shared_ptr<User>& clientUser,
-        const std::shared_ptr<Database>& database, const WormsPacketPtr& packet) {
-        switch (packet->code()) {
+                                                const std::shared_ptr<Database>& database, const WormsPacketPtr& packet)
+    {
+        switch (packet->code())
+        {
         case PacketCode::ChatRoom:
             spdlog::debug("Chat room packet received");
             co_return co_await OnChatRoom(clientUser, database, packet);
